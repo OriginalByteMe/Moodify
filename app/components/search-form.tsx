@@ -5,8 +5,9 @@ import {useSearchParams, useRouter} from 'next/navigation';
 import {Search} from 'lucide-react';
 import {Input} from '@/components/ui/input';
 import {SearchResults} from '@/components/search-results';
-import {searchSpotify} from '@/lib/spotify';
 import {useDebounce} from '@/hooks/use-debounce';
+import {useDispatch, useSelector} from 'react-redux';
+import useSpotify from '@/hooks/useSpotify';
 
 export function SearchForm() {
 	const searchParams = useSearchParams();
@@ -14,41 +15,21 @@ export function SearchForm() {
 	const initialQuery = searchParams.get('q') || '';
 
 	const [query, setQuery] = useState(initialQuery);
-	const [results, setResults] = useState([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
 
+	const dispatch = useDispatch();
+    const { fetchTracksFromSearch } = useSpotify();
 	const debouncedQuery = useDebounce(query, 500);
-
+    const loading = useSelector((state: { spotify: { isLoading: boolean } }) => state.spotify.isLoading);
+    const error = useSelector((state: { spotify: { error: string } }) => state.spotify.error);
 	useEffect(() => {
 		if (debouncedQuery) {
 			router.push(`/?q=${encodeURIComponent(debouncedQuery)}`, {scroll: false});
-			fetchResults(debouncedQuery);
+			fetchTracksFromSearch(debouncedQuery);
 		} else {
-			setResults([]);
+			dispatch({ type: 'spotify/setTracks', payload: [] });
 			router.push('/', {scroll: false});
 		}
 	}, [debouncedQuery, router]);
-
-	const fetchResults = async searchQuery => {
-		if (!searchQuery.trim()) {
-			return;
-		}
-
-		setLoading(true);
-		setError('');
-
-		try {
-			const data = await searchSpotify(searchQuery);
-			setResults(data);
-		} catch (err) {
-			console.error('Error fetching results:', err);
-			setError('Failed to fetch results. Please try again.');
-			setResults([]);
-		} finally {
-			setLoading(false);
-		}
-	};
 
 	return (
 		<div className='w-full max-w-3xl mx-auto'>
@@ -61,7 +42,7 @@ export function SearchForm() {
 					placeholder='Search for songs, artists, or albums...'
 					value={query}
 					onChange={e => setQuery(e.target.value)}
-					className='pl-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 h-12'
+					className='pl-10 text-black dark:text-white placeholder:text-zinc-500 dark:placeholder:text-zinc-400 h-12 rounded-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-transparent focus:border-blue-500 focus-visible:ring-blue-500/20 shadow-lg'
 				/>
 			</div>
 
@@ -74,7 +55,7 @@ export function SearchForm() {
 					</div>
 				)
 				: (
-					debouncedQuery && <SearchResults results={results} />
+					debouncedQuery && <SearchResults />
 				)}
 		</div>
 	);

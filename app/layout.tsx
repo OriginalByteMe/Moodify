@@ -1,26 +1,32 @@
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { StoreProvider } from "./StoreProvider";
-import { Nav } from "./components/Nav";
+import { ThemeProvider } from "@/app/components/ThemeProvider";
+import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch";
+import { Inter } from 'next/font/google'
 
 import "./styles/globals.css";
-import styles from "./styles/layout.module.css";
+import Link from "next/link";
+import { Github } from "lucide-react";
+
+const inter = Inter({ subsets: ['latin'] })
+
 
 interface Props {
   readonly children: ReactNode;
 }
 export const metadata = {
-  title: 'Noah Rijkaard',
-  description: 'A little portfolio site for Noah Rijkaard',
+  title: 'Moodify',
+  description: 'Pick a song, paint the mood.',
+  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   openGraph: {
-    title: 'Noah Rijkaard',
-    description: 'A little portfolio site for Noah Rijkaard',
+    title: 'Moodify',
+    description: 'Pick a song, paint the mood.',
     images: [
       {
-        url: '/portfolio showcase.gif', 
+        url: '/moodify.gif', 
         width: 800,
         height: 600,
-        alt: 'Noah Rijkaard Portfolio Preview',
+        alt: 'Moodify site preview',
       },
     ],
   },
@@ -48,10 +54,33 @@ export default function RootLayout({ children }: Props) {
           content={metadata.openGraph.images[0].alt}
           />
       </head>
-      <body>
-        <StoreProvider>
-          {children}
-        </StoreProvider>
+      <body className={inter.className}>
+        <ThemeProvider>
+          <StoreProvider>
+            <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+            <header className="fixed top-0 right-0 m-4 z-50 flex items-center space-x-4">
+                <Link
+                  href="https://github.com/OriginalByteMe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github className="w-6 h-6 text-gray-800 dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors" />
+                </Link>
+                <Link
+                  href="https://blog.noahrijkaard.com"
+                  target="_blank"
+                  rel="noopener noreferer"
+                >
+                  <div className="text-gray-800 dark:text-white hover:text-blue-500 dark:hover:text-blue-400 hover:underline transition-colors">
+                    Blog
+                  </div>
+                </Link>
+                <ThemeSwitch />
+              </header>
+              {children}
+            </div>
+          </StoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

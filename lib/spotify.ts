@@ -38,7 +38,7 @@ async function getAccessToken() {
 	}
 }
 
-export async function searchSpotify(query) {
+export async function searchSpotify(query: string) {
 	try {
 		const token = await getAccessToken();
 
