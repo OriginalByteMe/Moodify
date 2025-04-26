@@ -4,7 +4,7 @@ import {Button} from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
 export function SongCard({track}: {track: SpotifyTrack}) {
 	return (
-		<div className='bg-zinc-800 rounded-lg overflow-hidden transition-all hover:bg-zinc-700 group'>
+		<div className='rounded-2xl overflow-hidden transition-all group shadow-lg'>
 			<div className='relative aspect-square'>
 				<Image
 					src={track.albumCover || '/placeholder.svg?height=300&width=300'}
@@ -18,10 +18,10 @@ export function SongCard({track}: {track: SpotifyTrack}) {
 					</Button>
 				</div>
 			</div>
-			<div className='p-4'>
-				<h3 className='font-medium text-white truncate'>{track.title}</h3>
-				<p className='text-zinc-400 text-sm truncate'>{track.artists.join(', ')}</p>
-				<p className='text-zinc-500 text-xs mt-1'>{track.album}</p>
+			<div className='p-4 backdrop-blur-lg bg-white/70 dark:bg-black/70'>
+				<h3 className='font-medium text-gray-900 dark:text-white truncate'>{track.title}</h3>
+				<p className='text-gray-700 dark:text-gray-300 text-sm truncate'>{track.artists.join(', ')}</p>
+				<p className='text-gray-600 dark:text-gray-400 text-xs mt-1'>{track.album}</p>
                 <div className='flex gap-1 mt-1'>
                     {track.colourPalette.map((c: number[], i: number) => (
                         <div

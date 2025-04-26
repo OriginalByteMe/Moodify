@@ -44,7 +44,7 @@ export function SearchForm() {
 					placeholder='Search for songs, artists, or albums...'
 					value={query}
 					onChange={e => setQuery(e.target.value)}
-					className='pl-10 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-400 h-12'
+					className='pl-10 text-black dark:text-white placeholder:text-zinc-500 dark:placeholder:text-zinc-400 h-12 rounded-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-transparent focus:border-blue-500 focus-visible:ring-blue-500/20 shadow-lg'
 				/>
 			</div>
 
