@@ -7,6 +7,9 @@ import {Input} from '@/components/ui/input';
 import {SearchResults} from '@/components/search-results';
 import {searchSpotify} from '@/lib/spotify';
 import {useDebounce} from '@/hooks/use-debounce';
+import {useDispatch, useSelector} from 'react-redux';
+import {SpotifyTrack} from '@/utils/interfaces';
+import useSpotify from '@/hooks/useSpotify';
 
 export function SearchForm() {
 	const searchParams = useSearchParams();
@@ -14,41 +17,21 @@ export function SearchForm() {
 	const initialQuery = searchParams.get('q') || '';
 
 	const [query, setQuery] = useState(initialQuery);
-	const [results, setResults] = useState([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
 
+	const dispatch = useDispatch();
+    const { fetchTracksFromSearch } = useSpotify();
 	const debouncedQuery = useDebounce(query, 500);
-
+    const loading = useSelector((state: { spotify: { isLoading: boolean } }) => state.spotify.isLoading);
+    const error = useSelector((state: { spotify: { error: string } }) => state.spotify.error);
 	useEffect(() => {
 		if (debouncedQuery) {
 			router.push(`/?q=${encodeURIComponent(debouncedQuery)}`, {scroll: false});
-			fetchResults(debouncedQuery);
+			fetchTracksFromSearch(debouncedQuery);
 		} else {
-			setResults([]);
+			dispatch({ type: 'spotify/setTracks', payload: [] });
 			router.push('/', {scroll: false});
 		}
 	}, [debouncedQuery, router]);
-
-	const fetchResults = async searchQuery => {
-		if (!searchQuery.trim()) {
-			return;
-		}
-
-		setLoading(true);
-		setError('');
-
-		try {
-			const data = await searchSpotify(searchQuery);
-			setResults(data);
-		} catch (err) {
-			console.error('Error fetching results:', err);
-			setError('Failed to fetch results. Please try again.');
-			setResults([]);
-		} finally {
-			setLoading(false);
-		}
-	};
 
 	return (
 		<div className='w-full max-w-3xl mx-auto'>
@@ -74,7 +57,7 @@ export function SearchForm() {
 					</div>
 				)
 				: (
-					debouncedQuery && <SearchResults results={results} />
+					debouncedQuery && <SearchResults />
 				)}
 		</div>
 	);

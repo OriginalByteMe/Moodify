@@ -22,5 +22,5 @@ export default function Home() {
 }
 
 export const metadata: Metadata = {
-  title: "Redux Toolkit",
+  title: "Moodify",
 };

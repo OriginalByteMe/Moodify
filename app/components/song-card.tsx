@@ -1,14 +1,14 @@
-import Image from "next/image"
-import {Play} from "lucide-react"
-import {Button} from "@/components/ui/button"
+import Image from 'next/image';
+import {Play} from 'lucide-react';
+import {Button} from '@/components/ui/button';
 
 export function SongCard({track}) {
 	return (
 		<div className='bg-zinc-800 rounded-lg overflow-hidden transition-all hover:bg-zinc-700 group'>
 			<div className='relative aspect-square'>
 				<Image
-					src={track.album.images[0]?.url || "/placeholder.svg?height=300&width=300"}
-					alt={track.album.name}
+					src={track.albumCover || '/placeholder.svg?height=300&width=300'}
+					alt={track.album}
 					fill
 					className='object-cover'
 				/>
@@ -19,10 +19,10 @@ export function SongCard({track}) {
 				</div>
 			</div>
 			<div className='p-4'>
-				<h3 className='font-medium text-white truncate'>{track.name}</h3>
-				<p className='text-zinc-400 text-sm truncate'>{track.artists.map((artist) => artist.name).join(", ")}</p>
-				<p className='text-zinc-500 text-xs mt-1'>{track.album.name}</p>
+				<h3 className='font-medium text-white truncate'>{track.title}</h3>
+				<p className='text-zinc-400 text-sm truncate'>{track.artist}</p>
+				<p className='text-zinc-500 text-xs mt-1'>{track.album}</p>
 			</div>
 		</div>
-	)
+	);
 }
