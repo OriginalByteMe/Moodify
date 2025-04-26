@@ -18,6 +18,11 @@ export const metadata = {
   title: 'Moodify',
   description: 'Pick a song, paint the mood.',
   metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     title: 'Moodify',
     description: 'Pick a song, paint the mood.',
