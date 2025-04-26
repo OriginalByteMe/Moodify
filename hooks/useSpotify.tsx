@@ -60,7 +60,7 @@ const useSpotify = () => {
         return { ...track, colourPalette: demoTracks[0].colourPalette };
         }
         try {
-        const response = await fetch('/api/spotify/palette-picker', {
+        const response = await fetch('/api/data/palette-picker', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageUrl: track.albumCover })

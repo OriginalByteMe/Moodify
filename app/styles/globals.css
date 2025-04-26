@@ -19,6 +19,23 @@ a {
   box-sizing: border-box;
 }
 
+.palette-circle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid white;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.palette-circle:hover {
+  transform: scale(1.3);
+  z-index: 1;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

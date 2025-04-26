@@ -24,20 +24,3 @@ export async function GET(request: NextRequest) {
         );
     }
 }
-const fetchResults = async (searchQuery: string) => {
-        const dispatch = useDispatch();
-        if (!searchQuery.trim()) {
-            return;
-        }
-        dispatch({ type: 'spotify/setLoading', payload: true });
-        dispatch({ type: 'spotify/setError', payload: '' });
-        try {
-            const data = await searchSpotify(searchQuery);
-            return { tracks: data };
-        } catch (err) {
-            console.error('Error fetching results:', err);
-            return { error: 'Failed to fetch results. Please try again.' };
-        } finally {
-            dispatch({ type: 'spotify/setLoading', payload: false });
-        }
-    };
