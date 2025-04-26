@@ -5,10 +5,8 @@ import {useSearchParams, useRouter} from 'next/navigation';
 import {Search} from 'lucide-react';
 import {Input} from '@/components/ui/input';
 import {SearchResults} from '@/components/search-results';
-import {searchSpotify} from '@/lib/spotify';
 import {useDebounce} from '@/hooks/use-debounce';
 import {useDispatch, useSelector} from 'react-redux';
-import {SpotifyTrack} from '@/utils/interfaces';
 import useSpotify from '@/hooks/useSpotify';
 
 export function SearchForm() {

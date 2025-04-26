@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { SearchForm } from "@/app/components/search-form"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground";
@@ -14,7 +15,9 @@ export default function Home() {
           <p className="text-zinc-900 mb-8 text-center max-w-2xl dark:text-zinc-300">
             Search for your favorite songs, artists, and albums. Results update in real-time as you type.
           </p>
-          <SearchForm />
+          <Suspense fallback={<div className="w-full max-w-3xl mx-auto h-12 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse"></div>}>
+            <SearchForm />
+          </Suspense>
         </div>
       </div>
     </div>

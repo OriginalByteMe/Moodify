@@ -16,16 +16,17 @@ interface Props {
 }
 export const metadata = {
   title: 'Moodify',
-  description: 'A mood tracking app',
+  description: 'Pick a song, paint the mood.',
+  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
   openGraph: {
     title: 'Moodify',
-    description: 'A mood tracking app',
+    description: 'Pick a song, paint the mood.',
     images: [
       {
         url: '/moodify.gif', 
         width: 800,
         height: 600,
-        alt: 'Moodify Portfolio Preview',
+        alt: 'Moodify site preview',
       },
     ],
   },
