@@ -4,7 +4,6 @@ import { SpotifyTrack } from "@/app/utils/interfaces"
 
 export function SearchResults() {
   const results = useSelector((state: { spotify: { tracks: SpotifyTrack[] } }) => state.spotify.tracks);
-  console.log('results:', results);
   if (!results || results.length === 0) {
     return <div className="mt-8 text-center text-zinc-400">No results found. Try a different search term.</div>
   }
