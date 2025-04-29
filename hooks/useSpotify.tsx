@@ -129,7 +129,13 @@ const useSpotify = () => {
         
         dispatch({ type: 'spotify/setTracks', payload: tracksWithPalettes });
         dispatch({ type: 'spotify/setLoading', payload: false });
-        uploadTracksToDatabase(tracksWithPalettes);
+        await fetch('/api/data/collection/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tracks: tracksWithPalettes }),
+        })
         return tracksWithPalettes;
       }
       

@@ -88,6 +88,7 @@ export const uploadTracksToDatabase = async (tracks: SpotifyTrack[]): Promise<vo
     if (!response.ok) {
       throw new Error(`Failed to upload tracks: ${response.statusText}`);
     }
+    return response.json()
   } catch (error) {
     console.error('Error uploading tracks to database:', error);
   }
