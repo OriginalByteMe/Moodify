@@ -1,13 +1,12 @@
-const palette_worker_url = process.env.COLOUR_PALETTE_URL
+const palette_worker_url = process.env.NEXT_PUBLIC_MOODIFY_BACKEND_URL
 
 export const fetchColourPaletteFromImage = async (imageUrl: string) => {
   try {
-    const response = await fetch(`${palette_worker_url}/api/palette?buckets=4`, {
+    const response = await fetch(`${palette_worker_url}/spotify/palettizer?image_url=${imageUrl}&bucketSize=4`, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain',
       },
-      body: imageUrl,
     })
     if (!response.ok) {
       throw new Error(`Failed to fetch palette: ${response}`)

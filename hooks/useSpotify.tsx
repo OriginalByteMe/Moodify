@@ -1,6 +1,7 @@
 "use client"
 
 import { SpotifyTrack } from "@/app/utils/interfaces";
+import { uploadTracksToDatabase } from "@/lib/database-handler";
 import { useDispatch } from "react-redux";
 
 const useSpotify = () => {
@@ -128,6 +129,13 @@ const useSpotify = () => {
         
         dispatch({ type: 'spotify/setTracks', payload: tracksWithPalettes });
         dispatch({ type: 'spotify/setLoading', payload: false });
+        await fetch('/api/data/collection/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tracks: tracksWithPalettes }),
+        })
         return tracksWithPalettes;
       }
       
