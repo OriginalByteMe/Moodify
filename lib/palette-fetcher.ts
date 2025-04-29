@@ -1,4 +1,4 @@
-const palette_worker_url = process.env.COLOUR_PALETTE_URL
+const palette_worker_url = process.env.NEXT_PUBLIC_MOODIFY_BACKEND_URL
 
 export const fetchColourPaletteFromImage = async (imageUrl: string) => {
   try {

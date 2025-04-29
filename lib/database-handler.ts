@@ -1,6 +1,6 @@
 import { SpotifyTrack } from "@/app/utils/interfaces";
 
-const backend_url = process.env.COLOUR_PALETTE_URL || 'http://localhost:5050'
+const backend_url = process.env.NEXT_PUBLIC_MOODIFY_BACKEND_URL
 
 export const fetchTracksFromDatabase = async (trackIds: string[]): Promise<SpotifyTrack[]> => {
   try {
