@@ -38,12 +38,12 @@ async function getAccessToken() {
 	}
 }
 
-export async function searchSpotify(query: string) {
+export async function searchSpotify(query: string, offset: number = 0, limit: number = 12, type: string = 'track') {
 	try {
 		const token = await getAccessToken();
 
 		const response = await fetch(
-			`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=12`,
+			`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}&offset=${offset}`,
 			{
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -56,9 +56,43 @@ export async function searchSpotify(query: string) {
 		}
 
 		const data = await response.json();
-		return data.tracks.items;
+		const resultKey = type === 'album' ? 'albums' : 'tracks';
+		const results = data[resultKey];
+		
+		return {
+			items: results.items,
+			total: results.total,
+			offset: results.offset,
+			limit: results.limit,
+			hasMore: results.offset + results.limit < results.total
+		};
 	} catch (error) {
 		console.error('Error searching Spotify:', error);
+		throw error;
+	}
+}
+
+export async function getAlbumTracks(albumId: string) {
+	try {
+		const token = await getAccessToken();
+
+		const response = await fetch(
+			`https://api.spotify.com/v1/albums/${albumId}/tracks`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			},
+		);
+
+		if (!response.ok) {
+			throw new Error('Failed to fetch album tracks from Spotify API');
+		}
+
+		const data = await response.json();
+		return data.items;
+	} catch (error) {
+		console.error('Error fetching album tracks:', error);
 		throw error;
 	}
 }

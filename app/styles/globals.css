@@ -9,6 +9,8 @@
     --blob-tertiary: 230 85% 20%;    /* Dark navy */
     --gradient-start: 0 0% 100%;     /* White */
     --gradient-end: 225 80% 30%;     /* Navy blue */
+    --bg-primary: rgb(255, 255, 255);
+    --bg-secondary: rgb(225, 225, 225);
   }
 
   .dark {
@@ -17,6 +19,8 @@
     --blob-tertiary: 230 80% 20%;    /* Slightly brighter darkest navy */
     --gradient-start: 0 0% 0%;       /* Black */
     --gradient-end: 225 75% 25%;     /* Slightly brighter dark navy */
+    --bg-primary: rgb(0, 0, 0);
+    --bg-secondary: rgb(30, 30, 30);
   }
 }
 
@@ -25,12 +29,13 @@ html {
 }
 
 body {
-  @apply bg-white text-black transition-colors duration-300 ease-in-out;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  @apply text-black transition-all duration-500 ease-in-out;
   min-height: 100vh;
 }
 
 body.dark {
-  @apply bg-black text-white;
+  @apply text-white;
 }
 
 ::-webkit-scrollbar {
