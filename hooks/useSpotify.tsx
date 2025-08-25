@@ -67,17 +67,28 @@ const useSpotify = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageUrl: track.albumCover })
         });
-        if (!response.ok) throw new Error('Failed to fetch color palette');
+        
         const data = await response.json();
-        let palette = data.palette;
-        if (Array.isArray(palette) && palette.length > 0) {
-            if (!Array.isArray(palette[0])) {
-            palette = palette.map((c: string | number[]) => typeof c === 'string' && c.includes(',') ? c.split(',').map(Number) : Array.isArray(c) ? c : demoTracks[0].colourPalette);
+        
+        // Handle both successful responses and error responses with fallback palettes
+        if (data.palette) {
+            let palette = data.palette;
+            if (Array.isArray(palette) && palette.length > 0) {
+                if (!Array.isArray(palette[0])) {
+                palette = palette.map((c: string | number[]) => typeof c === 'string' && c.includes(',') ? c.split(',').map(Number) : Array.isArray(c) ? c : demoTracks[0].colourPalette);
+                }
+                
+                // Log if this was a fallback response
+                if (data.fallback) {
+                    console.warn('Using fallback palette due to error:', data.error);
+                }
+                
+                return { ...track, colourPalette: palette };
             }
-        } else {
-            palette = demoTracks[0].colourPalette;
         }
-        return { ...track, colourPalette: palette };
+        
+        // If no valid palette in response, use default
+        return { ...track, colourPalette: demoTracks[0].colourPalette };
         } catch (err) {
         console.error('Error fetching color palette:', err);
         return { ...track, colourPalette: demoTracks[0].colourPalette };

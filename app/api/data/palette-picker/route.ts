@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Error in Spotify palette-picker API:', error);
-    // Return a default palette on error
+    // Return a default palette on error with proper error status
     const defaultPalette = [
       [52, 211, 153], // Emerald
       [16, 185, 129],
@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: 'Failed to process request',
-        palette: defaultPalette 
+        error: error instanceof Error ? error.message : 'Failed to process request',
+        palette: defaultPalette,
+        fallback: true
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }

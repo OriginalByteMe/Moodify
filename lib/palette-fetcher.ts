@@ -9,7 +9,8 @@ export const fetchColourPaletteFromImage = async (imageUrl: string) => {
       },
     })
     if (!response.ok) {
-      throw new Error(`Failed to fetch palette: ${response}`)
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Failed to fetch palette: ${response.status} ${response.statusText} - ${errorText}`)
     }
 
     const data = await response.json()
