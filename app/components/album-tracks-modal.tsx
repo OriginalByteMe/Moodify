@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { X, ExternalLink, Play, Clock, Calendar, Music, Palette } from 'lucide-react'
+import { X, ExternalLink, Play, Clock, Calendar, Music, Palette, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpotifyAlbum, SpotifyTrack } from '../utils/interfaces'
 import useSpotify from '@/hooks/useSpotify'
@@ -17,6 +17,8 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
   const [selectedTrack, setSelectedTrack] = useState<any>(null)
   const [showPalette, setShowPalette] = useState<string | null>(null)
   const { fetchColourPalette } = useSpotify()
+  // Use a ref for audio element
+  const _audioRef = React.useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     if (isOpen && album) {
@@ -68,6 +70,16 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
     }
   }
 
+  // Stop preview when modal closes or component unmounts
+  useEffect(() => {
+    if (!isOpen) {
+      stopPreview()
+    }
+  }, [isOpen])
+  useEffect(() => {
+    return () => stopPreview()
+  }, [])
+
   const handleTrackClick = (track: any) => {
     setSelectedTrack(track)
     // Change the page background using CSS custom properties
@@ -77,6 +89,37 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
       document.documentElement.style.setProperty('--bg-primary', `rgb(${mainColor[0]}, ${mainColor[1]}, ${mainColor[2]})`)
       document.documentElement.style.setProperty('--bg-secondary', `rgb(${secondaryColor[0]}, ${secondaryColor[1]}, ${secondaryColor[2]})`)
     }
+  }
+
+  const playPreview = (track: any) => {
+    const url = track?.previewUrl
+    if (!url) {
+      console.warn('[Preview] No preview URL available for album track:', { id: track?.id, name: track?.name ?? track?.title })
+      return
+    }
+    try {
+      if (!_audioRef.current || _audioRef.current.src !== url) {
+        if (_audioRef.current) {
+          _audioRef.current.pause()
+        }
+        _audioRef.current = new Audio(url)
+      }
+      _audioRef.current.currentTime = 0
+      _audioRef.current.play().catch(err => {
+        console.warn('[Preview] Failed to play album track preview:', err)
+      })
+    } catch (e) {
+      console.warn('[Preview] Error initializing album track preview audio:', e)
+    }
+  }
+
+  const stopPreview = () => {
+    try {
+      if (_audioRef.current) {
+        _audioRef.current.pause()
+        _audioRef.current.currentTime = 0
+      }
+    } catch {}
   }
 
   const togglePalette = (trackId: string) => {
@@ -250,6 +293,22 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Palette className="w-4 h-4" />
+                      </Button>
+
+                      {/* Magic Wand: apply palette + play preview */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleTrackClick(track)
+                          playPreview(track)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        title={track.previewUrl ? 'Apply colors and play preview' : 'No preview available'}
+                        disabled={!track.previewUrl}
+                      >
+                        <Wand2 className="w-4 h-4" />
                       </Button>
 
                       {track.external_urls?.spotify && (

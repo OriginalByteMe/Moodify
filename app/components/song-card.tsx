@@ -71,6 +71,39 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const dispatch = useDispatch();
 	const { applyPalette, resetPalette } = useTheme();
 	const currentTrack = track
+	const audioRef = useRef<HTMLAudioElement | null>(null)
+
+	const playPreview = useCallback(() => {
+		const url = currentTrack?.previewUrl
+		if (!url) {
+			console.warn('[Preview] No preview URL available for track:', { id: currentTrack?.id, title: currentTrack?.title })
+			return
+		}
+		try {
+			if (!audioRef.current || audioRef.current.src !== url) {
+				// Stop any existing audio
+				if (audioRef.current) {
+					audioRef.current.pause()
+				}
+				audioRef.current = new Audio(url)
+			}
+			audioRef.current.currentTime = 0
+			audioRef.current.play().catch(err => {
+				console.warn('[Preview] Failed to play preview:', err)
+			})
+		} catch (e) {
+			console.warn('[Preview] Error initializing preview audio:', e)
+		}
+	}, [currentTrack])
+
+	const stopPreview = useCallback(() => {
+		try {
+			if (audioRef.current) {
+				audioRef.current.pause()
+				audioRef.current.currentTime = 0
+			}
+		} catch {}
+	}, [])
 
 	const handleMagicWandClick = useCallback(() => {
 		if (!currentTrack) return;
@@ -79,17 +112,19 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 			dispatch({ type: 'spotify/setSelectedTrack', payload: null });
 			resetPalette();
 			setShowPalette(false);
+			stopPreview();
 		} else {
 			dispatch({ type: 'spotify/setSelectedTrack', payload: currentTrack });
 			if (currentTrack.colourPalette) {
 				applyPalette(currentTrack.colourPalette);
 			}
 			setShowPalette(true);
+			playPreview();
 		}
 		setIsJiggling(true)
 		// Reset jiggling after animation completes
 		setTimeout(() => setIsJiggling(false), 820)
-	}, [currentTrack, selectedTrack, dispatch, resetPalette, applyPalette]);
+	}, [currentTrack, selectedTrack, dispatch, resetPalette, applyPalette, playPreview, stopPreview]);
 
 	const handleInfoClick = useCallback(() => {
 		if (!currentTrack) return;
@@ -99,8 +134,17 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	useEffect(() => {
 		if (selectedTrack && currentTrack && selectedTrack.id !== currentTrack.id) {
 		  setShowPalette(false);
+		  // Stop preview if another track is selected
+		  stopPreview();
 		}
-	  }, [selectedTrack, currentTrack]);
+	  }, [selectedTrack, currentTrack, stopPreview]);
+
+	useEffect(() => {
+		return () => {
+			// Cleanup on unmount
+			stopPreview()
+		}
+	}, [stopPreview])
 	  
 	return (
 		<div className='rounded-2xl overflow-hidden transition-all group shadow-lg'>

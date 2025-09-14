@@ -55,6 +55,7 @@ export const uploadTrackToDatabase = async (track: SpotifyTrack): Promise<void> 
         "album": track.album,
         "albumCover": track.albumCover,
         "songUrl": track.songUrl,
+        "previewUrl": track.previewUrl ?? null,
         "colourPalette": track.colourPalette
       }),
     });
@@ -75,6 +76,7 @@ export const uploadTracksToDatabase = async (tracks: SpotifyTrack[]): Promise<vo
       album: track.album,
       albumCover: track.albumCover,
       songUrl: track.songUrl,
+      previewUrl: track.previewUrl ?? null,
       colourPalette: track.colourPalette
     }));
 

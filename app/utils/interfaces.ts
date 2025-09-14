@@ -27,6 +27,7 @@ export interface SpotifyTrack {
   albumId?: string;
   albumCover?: string;
   songUrl: string;
+  previewUrl?: string | null;
   colourPalette: palette;
 }
 

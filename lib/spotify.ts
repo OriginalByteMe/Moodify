@@ -4,6 +4,8 @@
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
+import previewFinder from 'spotify-preview-finder';
+
 let accessToken: string | null = null;
 let tokenExpiration = 0;
 
@@ -58,6 +60,35 @@ export async function searchSpotify(query: string, offset: number = 0, limit: nu
 		const data = await response.json();
 		const resultKey = type === 'album' ? 'albums' : 'tracks';
 		const results = data[resultKey];
+
+		// Enrich track search results with previewUrl using spotify-preview-finder
+		if (type !== 'album' && Array.isArray(results?.items)) {
+			results.items = await Promise.all(
+				results.items.map(async (item: any) => {
+					try {
+						const name: string = item?.name ?? '';
+						const artists: string[] = Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.name).filter(Boolean) : [];
+						const trackId: string | undefined = item?.id;
+						let previewUrl: string | null = null;
+						if (name) {
+							const primaryArtist = artists[0] ?? undefined;
+							const pfRes = await previewFinder(name, primaryArtist, 3);
+							if (pfRes && pfRes.success && Array.isArray(pfRes.results) && pfRes.results.length > 0) {
+								const match = trackId ? pfRes.results.find((r: any) => r.trackId === trackId) : null;
+								const chosen = match ?? pfRes.results[0];
+								if (Array.isArray(chosen.previewUrls) && chosen.previewUrls.length > 0) {
+									previewUrl = chosen.previewUrls[0];
+								}
+							}
+						}
+						return { ...item, previewUrl };
+					} catch (e) {
+						console.warn('[Spotify] Preview URL fetch failed for search item', { id: item?.id, name: item?.name, error: (e as Error).message });
+						return { ...item, previewUrl: null };
+					}
+				})
+			);
+		}
 		
 		return {
 			items: results.items,
@@ -90,7 +121,34 @@ export async function getAlbumTracks(albumId: string) {
 		}
 
 		const data = await response.json();
-		return data.items;
+		let items = Array.isArray(data?.items) ? data.items : [];
+		// Enrich album tracks with previewUrl
+		items = await Promise.all(
+			items.map(async (item: any) => {
+				try {
+					const name: string = item?.name ?? '';
+					const artists: string[] = Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.name).filter(Boolean) : [];
+					const trackId: string | undefined = item?.id;
+					let previewUrl: string | null = null;
+					if (name) {
+						const primaryArtist = artists[0] ?? undefined;
+						const pfRes = await previewFinder(name, primaryArtist, 3);
+						if (pfRes && pfRes.success && Array.isArray(pfRes.results) && pfRes.results.length > 0) {
+							const match = trackId ? pfRes.results.find((r: any) => r.trackId === trackId) : null;
+							const chosen = match ?? pfRes.results[0];
+							if (Array.isArray(chosen.previewUrls) && chosen.previewUrls.length > 0) {
+								previewUrl = chosen.previewUrls[0];
+							}
+						}
+					}
+					return { ...item, previewUrl };
+				} catch (e) {
+					console.warn('[Spotify] Preview URL fetch failed for album track', { id: item?.id, name: item?.name, error: (e as Error).message });
+					return { ...item, previewUrl: null };
+				}
+			})
+		);
+		return items;
 	} catch (error) {
 		console.error('Error fetching album tracks:', error);
 		throw error;

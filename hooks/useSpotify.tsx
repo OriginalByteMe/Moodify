@@ -133,6 +133,7 @@ const useSpotify = () => {
           album: track.album.name,
           albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
           songUrl: track.external_urls?.spotify || '',
+          previewUrl: track.previewUrl ?? null,
           colourPalette: demoTracks[0].colourPalette // Default palette until we fetch the real one
         }));
         
@@ -188,6 +189,7 @@ const useSpotify = () => {
           album: track.album.name,
           albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
           songUrl: track.external_urls?.spotify || '',
+          previewUrl: track.previewUrl ?? null,
           colourPalette: demoTracks[0].colourPalette // Default palette until we fetch the real one
         }));
         
