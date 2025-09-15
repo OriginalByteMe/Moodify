@@ -7,6 +7,9 @@
     "lint": "next lint --fix"
   },
   "dependencies": {
+    "@react-spring/three": "^9.7.2",
+    "@react-three/fiber": "^8.17.10",
+    "@shadergradient/react": "^2.0.25",
     "@radix-ui/react-slot": "^1.2.0",
     "@radix-ui/react-switch": "^1.2.2",
     "@reduxjs/toolkit": "^2.2.0",
@@ -17,10 +20,11 @@
     "dotenv": "^17.2.2",
     "framer-motion": "^12.9.2",
     "lucide-react": "^0.503.0",
-    "next": "latest",
+    "next": "^14.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^9.1.0",
+    "three": "^0.164.1",
     "react-window": "^1.8.11",
     "react-window-infinite-loader": "^1.0.10",
     "spotify-preview-finder": "^2.1.0",
@@ -28,6 +32,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@types/three": "^0.164.0",
     "@eslint/config-helpers": "^0.2.1",
     "@eslint/js": "^9.25.1",
     "@types/node": "20.2.5",
