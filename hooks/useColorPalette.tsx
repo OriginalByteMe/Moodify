@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/lib/store';
 import convert from 'color-convert';
-export function useTheme() {
+export function useColorPalette() {
   const dispatch = useDispatch();
   const { palette, isCustomPalette } = useSelector((state: RootState) => state.colourPalette);
 
@@ -47,4 +47,4 @@ export function useTheme() {
   };
 }
 
-export default useTheme;
+export default useColorPalette;

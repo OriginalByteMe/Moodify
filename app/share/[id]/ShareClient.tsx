@@ -8,6 +8,8 @@ import { SpotifyTrack } from "@/app/utils/interfaces"
 import { useDispatch } from "react-redux"
 import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/features/spotifySlice"
 import PlayerControls from "@/app/components/PlayerControls"
+import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch"
+import { useTheme } from "@/app/components/ThemeProvider"
 
 function normalizeTrack(t: any) {
   if (!t) return null
@@ -48,6 +50,7 @@ function normalizeTrack(t: any) {
 export default function ShareClient({ track }: { track: SpotifyTrack }) {
   const shown = normalizeTrack(track)
   const dispatch = useDispatch()
+  const { theme } = useTheme()
   useEffect(() => {
     if (!shown) return
     // Hide global mini player and set selected track for background
@@ -73,25 +76,42 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
           <span className="text-white/90 font-semibold text-lg hidden sm:inline">Moodify</span>
         </Link>
       </div>
-      <div className="absolute top-4 right-4 z-20">
-        <Link href="/" className="px-4 py-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur font-medium">Try other songs →</Link>
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        <ThemeSwitch />
+        <Link href="/" className={`px-4 py-2 rounded-full backdrop-blur font-medium transition-colors ${
+          theme === 'dark'
+            ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600/50'
+            : 'bg-white/90 hover:bg-white text-gray-900'
+        }`}>Try other songs →</Link>
       </div>
 
       {/* Center content */}
       <div className="relative z-10 max-w-3xl w-full px-6 text-center mx-auto pt-24 pb-40">
-        <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+        <div className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
+          theme === 'dark' ? 'border-white/20' : 'border-gray-900/20'
+        }`}>
           <Image src={shown.albumCover || '/placeholder.svg?height=300&width=300'} alt={shown.title} width={320} height={320} className="w-full h-full object-cover" />
         </div>
-        <h1 className="mt-6 text-3xl sm:text-5xl font-bold text-white drop-shadow">{shown.title}</h1>
-        <p className="mt-2 text-lg sm:text-xl text-white/80">{(shown.artists || []).join(', ')}</p>
-        <p className="mt-1 text-sm text-white/60">{shown.album}</p>
+        <h1 className={`mt-6 text-3xl sm:text-5xl font-bold drop-shadow-lg ${
+          theme === 'dark' ? 'text-white' : 'text-gray-900'
+        }`}>{shown.title}</h1>
+        <p className={`mt-2 text-lg sm:text-xl ${
+          theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+        }`}>{(shown.artists || []).join(', ')}</p>
+        <p className={`mt-1 text-sm ${
+          theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+        }`}>{shown.album}</p>
 
         {/* Palette */}
         <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
           {(shown.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
             <div key={i} className="flex flex-col items-center gap-2">
-              <div className="w-14 h-14 rounded-full shadow-lg border-2 border-white/30" style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
-              <span className="text-[10px] text-white/80 font-mono">{c[0]},{c[1]},{c[2]}</span>
+              <div className={`w-14 h-14 rounded-full shadow-lg border-2 ${
+                theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
+              }`} style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
+              <span className={`text-[10px] font-mono ${
+                theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+              }`}>{c[0]},{c[1]},{c[2]}</span>
             </div>
           ))}
         </div>

@@ -140,3 +140,30 @@ body.dark {
   }
 }
 
+/* Text backdrop utilities for improved readability */
+.text-backdrop-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.text-backdrop-dark {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-enhanced-contrast {
+  text-shadow:
+    1px 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+.text-enhanced-contrast-light {
+  text-shadow:
+    1px 1px 2px rgba(255, 255, 255, 0.8),
+    0 0 4px rgba(255, 255, 255, 0.5);
+}
+

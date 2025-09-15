@@ -10,6 +10,8 @@ import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import { Share2, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import PlayerControls from "@/app/components/PlayerControls"
+import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch"
+import { useTheme } from "@/app/components/ThemeProvider"
 
 export default function FullscreenPlayer() {
   const dispatch = useDispatch()
@@ -18,6 +20,7 @@ export default function FullscreenPlayer() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [copied, setCopied] = useState(false)
   const pathname = usePathname()
+  const { theme } = useTheme()
 
   // Close immersive overlay with Escape
   useEffect(() => {
@@ -65,16 +68,25 @@ export default function FullscreenPlayer() {
           <span className="text-white/90 font-semibold text-lg hidden sm:inline">Moodify</span>
         </Link>
         <div className="flex items-center gap-2">
+          <ThemeSwitch />
           <button
             onClick={onShare}
-            className="px-4 py-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur font-medium flex items-center gap-2"
+            className={`px-4 py-2 rounded-full backdrop-blur font-medium flex items-center gap-2 transition-colors ${
+              theme === 'dark'
+                ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600/50'
+                : 'bg-white/90 hover:bg-white text-gray-900'
+            }`}
             title="Copy shareable link"
           >
             <Share2 className="w-4 h-4" /> Share
           </button>
           <button
             onClick={onExit}
-            className="p-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur"
+            className={`p-2 rounded-full backdrop-blur transition-colors ${
+              theme === 'dark'
+                ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600/50'
+                : 'bg-white/90 hover:bg-white text-gray-900'
+            }`}
             aria-label="Exit"
           >
             <X className="w-5 h-5" />
@@ -84,27 +96,39 @@ export default function FullscreenPlayer() {
 
       {/* Center content */}
       <div className="relative z-[110] max-w-3xl w-full px-6 text-center mt-12">
-        <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+        <div className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
+          theme === 'dark' ? 'border-white/20' : 'border-gray-900/20'
+        }`}>
           <Image src={track.albumCover || '/placeholder.svg?height=300&width=300'} alt={track.title} width={320} height={320} className="w-full h-full object-cover" />
         </div>
-        <h1 className="mt-6 text-3xl sm:text-5xl font-bold text-white drop-shadow">
+        <h1 className={`mt-6 text-3xl sm:text-5xl font-bold drop-shadow-lg ${
+          theme === 'dark' ? 'text-white' : 'text-gray-900'
+        }`}>
           {track.title}
         </h1>
-        <p className="mt-2 text-lg sm:text-xl text-white/80">
+        <p className={`mt-2 text-lg sm:text-xl ${
+          theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+        }`}>
           {track.artists?.join(', ')}
         </p>
-        <p className="mt-1 text-sm text-white/60">{track.album}</p>
+        <p className={`mt-1 text-sm ${
+          theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+        }`}>{track.album}</p>
 
         {/* Palette */}
         <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
           {(track.colourPalette || []).slice(0,5).map((c, i) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div
-                className="w-14 h-14 rounded-full shadow-lg border-2 border-white/30"
+                className={`w-14 h-14 rounded-full shadow-lg border-2 ${
+                  theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
+                }`}
                 style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }}
                 title={`rgb(${c[0]}, ${c[1]}, ${c[2]})`}
               />
-              <span className="text-[10px] text-white/80 font-mono">{c[0]},{c[1]},{c[2]}</span>
+              <span className={`text-[10px] font-mono ${
+                theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+              }`}>{c[0]},{c[1]},{c[2]}</span>
             </div>
           ))}
         </div>

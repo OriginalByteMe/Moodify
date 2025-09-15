@@ -84,8 +84,8 @@ export default function LavaLampBackground({ palette, tempo, trackId }: Props = 
           lightType='3d'
         />
       </ShaderGradientCanvas>
-      {/* Readability overlay */}
-      <div className='absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-white/60 dark:via-black/20 dark:to-black/40' />
+      {/* Readability overlay - only apply in dark mode */}
+      <div className='absolute inset-0 bg-gradient-to-b from-transparent dark:via-black/20 dark:to-black/40' />
     </div>
   )
 }

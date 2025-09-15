@@ -5,6 +5,7 @@ import Image from "next/image"
 import { Pause, Play, Volume2, VolumeX, X } from "lucide-react"
 import { SpotifyTrack } from "@/app/utils/interfaces"
 import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
+import { useTheme } from "@/app/components/ThemeProvider"
 
 interface PlayerControlsProps {
   track: SpotifyTrack
@@ -31,6 +32,7 @@ export default function PlayerControls({
     isPlaying, play, pause, resume, currentTrack, progress, volume, muted,
     toggleMute, setVolume, timeLeftFormatted
   } = usePreviewPlayer()
+  const { theme } = useTheme()
 
   React.useEffect(() => {
     if (autoPlayOnMount && track.previewUrl && (!currentTrack || currentTrack.id !== track.id)) {
@@ -127,16 +129,26 @@ export default function PlayerControls({
 
   // Large variant (for fullscreen, share, and play pages)
   return (
-    <div className={`w-[92%] sm:w-[640px] px-4 py-3 rounded-full bg-white/95 text-gray-900 shadow-2xl border border-gray-200 backdrop-blur flex items-center gap-4 ${className}`}>
-      <div className="relative w-12 h-12 overflow-hidden rounded-full border border-gray-200">
+    <div className={`w-[92%] sm:w-[640px] px-4 py-3 rounded-full shadow-2xl backdrop-blur flex items-center gap-4 ${
+      theme === 'dark'
+        ? 'bg-gray-800/95 text-white border border-gray-600'
+        : 'bg-white/95 text-gray-900 border border-gray-200'
+    } ${className}`}>
+      <div className={`relative w-12 h-12 overflow-hidden rounded-full border ${
+        theme === 'dark' ? 'border-gray-600' : 'border-gray-200'
+      }`}>
         <Image src={track.albumCover || '/placeholder.svg?height=40&width=40'} alt={track.title} fill className="object-cover" />
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold truncate">{track.title}</div>
-        <div className="text-xs text-gray-600 truncate">{track.artists?.join(', ')}</div>
+        <div className={`text-xs truncate ${
+          theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+        }`}>{track.artists?.join(', ')}</div>
         {isCurrentTrack && (
-          <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+          <div className={`mt-1 h-2 w-full rounded-full overflow-hidden ${
+            theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'
+          }`}>
             <div className="h-full bg-green-600 transition-[width]" style={{ width: `${progress * 100}%` }} />
           </div>
         )}
@@ -146,13 +158,19 @@ export default function PlayerControls({
         {hasPreview ? (
           <button
             onClick={handlePlayPause}
-            className="p-3 rounded-full bg-gray-100 hover:bg-gray-200"
+            className={`p-3 rounded-full transition-colors ${
+              theme === 'dark'
+                ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+            }`}
             aria-label={isCurrentTrack && isPlaying ? 'Pause' : 'Play'}
           >
             {isCurrentTrack && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
           </button>
         ) : (
-          <span className="text-xs text-gray-600">No preview</span>
+          <span className={`text-xs ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>No preview</span>
         )}
 
         {showVolumeControls && hasPreview && (
@@ -160,7 +178,11 @@ export default function PlayerControls({
             <button
               aria-label={muted ? "Unmute" : "Mute"}
               onClick={toggleMute}
-              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+              className={`p-2 rounded-full transition-colors ${
+                theme === 'dark'
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+              }`}
             >
               {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
@@ -178,7 +200,9 @@ export default function PlayerControls({
         )}
 
         {showTimeRemaining && hasPreview && isCurrentTrack && (
-          <div className="text-xs tabular-nums text-gray-600 w-12 text-right">-{timeLeftFormatted}</div>
+          <div className={`text-xs tabular-nums w-12 text-right ${
+            theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+          }`}>-{timeLeftFormatted}</div>
         )}
       </div>
     </div>

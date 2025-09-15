@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { tracksApi } from '@/lib/services/tracksApi';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
-import useTheme from '@/hooks/useTheme';
+import useColorPalette from '@/hooks/useColorPalette';
 import { RootState } from '@/lib/store';
 import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -73,7 +73,7 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const [showPalette, setShowPalette] = useState(false)
 	const { selectedTrack } = useSelector((state: RootState) => state.spotify)
 	const dispatch = useDispatch<AppDispatch>();
-	const { applyPalette, resetPalette } = useTheme();
+	const { applyPalette, resetPalette } = useColorPalette();
 	const currentTrack = track
 	const { play, stop } = usePreviewPlayer()
   const router = useRouter()
