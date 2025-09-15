@@ -43,7 +43,7 @@ export default function LavaLampBackground() {
   }, [selectedTrack?.id])
 
   return (
-    <div className='absolute inset-0 w-full h-full pointer-events-none select-none'>
+    <div className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'>
       <ShaderGradientCanvas
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       >
