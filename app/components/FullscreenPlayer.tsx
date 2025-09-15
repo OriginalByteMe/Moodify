@@ -12,6 +12,8 @@ import { usePathname } from "next/navigation"
 import PlayerControls from "@/app/components/PlayerControls"
 import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch"
 import { useTheme } from "@/app/components/ThemeProvider"
+import NerdStats from "@/app/components/NerdStats"
+import { Button } from "@/components/ui/button"
 
 export default function FullscreenPlayer() {
   const dispatch = useDispatch()
@@ -21,6 +23,7 @@ export default function FullscreenPlayer() {
   const [copied, setCopied] = useState(false)
   const pathname = usePathname()
   const { theme } = useTheme()
+  const [showStats, setShowStats] = useState(false)
 
   // Close immersive overlay with Escape
   useEffect(() => {
@@ -115,23 +118,39 @@ export default function FullscreenPlayer() {
           theme === 'dark' ? 'text-white/60' : 'text-gray-600'
         }`}>{track.album}</p>
 
-        {/* Palette */}
-        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
-          {(track.colourPalette || []).slice(0,5).map((c, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div
-                className={`w-14 h-14 rounded-full shadow-lg border-2 ${
-                  theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
-                }`}
-                style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }}
-                title={`rgb(${c[0]}, ${c[1]}, ${c[2]})`}
-              />
-              <span className={`text-[10px] font-mono ${
-                theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-              }`}>{c[0]},{c[1]},{c[2]}</span>
-            </div>
-          ))}
+        {/* Palette with backdrop */}
+        <div className="mt-8 max-w-2xl mx-auto rounded-xl p-4 bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
+          <div className="grid grid-cols-4 gap-3">
+            {(track.colourPalette || []).slice(0,5).map((c, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <div
+                  className={`w-14 h-14 rounded-full shadow-lg border-2 ${
+                    theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
+                  }`}
+                  style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }}
+                  title={`rgb(${c[0]}, ${c[1]}, ${c[2]})`}
+                />
+                <span className={`text-[10px] font-mono ${
+                  theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                }`}>{c[0]},{c[1]},{c[2]}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Nerd stats toggle */}
+        <div className="mt-4">
+          <Button variant="outline" onClick={() => setShowStats(s => !s)} aria-expanded={showStats} aria-controls="nerd-stats">
+            {showStats ? 'Hide nerd stats' : 'Show nerd stats'}
+          </Button>
+        </div>
+
+        {/* Nerd stats content */}
+        {showStats && (
+          <div id="nerd-stats" className="max-w-3xl mx-auto">
+            <NerdStats track={track} />
+          </div>
+        )}
       </div>
 
       {/* Big player pill bottom center */}
