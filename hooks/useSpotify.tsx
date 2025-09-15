@@ -3,6 +3,7 @@
 import { SpotifyTrack } from "@/app/utils/interfaces";
 import { uploadTracksToDatabase } from "@/lib/database-handler";
 import { useDispatch } from "react-redux";
+import { useCallback } from "react";
 
 const useSpotify = () => {
   const dispatch = useDispatch();
@@ -66,17 +67,28 @@ const useSpotify = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ imageUrl: track.albumCover })
         });
-        if (!response.ok) throw new Error('Failed to fetch color palette');
+        
         const data = await response.json();
-        let palette = data.palette;
-        if (Array.isArray(palette) && palette.length > 0) {
-            if (!Array.isArray(palette[0])) {
-            palette = palette.map((c: string | number[]) => typeof c === 'string' && c.includes(',') ? c.split(',').map(Number) : Array.isArray(c) ? c : demoTracks[0].colourPalette);
+        
+        // Handle both successful responses and error responses with fallback palettes
+        if (data.palette) {
+            let palette = data.palette;
+            if (Array.isArray(palette) && palette.length > 0) {
+                if (!Array.isArray(palette[0])) {
+                palette = palette.map((c: string | number[]) => typeof c === 'string' && c.includes(',') ? c.split(',').map(Number) : Array.isArray(c) ? c : demoTracks[0].colourPalette);
+                }
+                
+                // Log if this was a fallback response
+                if (data.fallback) {
+                    console.warn('Using fallback palette due to error:', data.error);
+                }
+                
+                return { ...track, colourPalette: palette };
             }
-        } else {
-            palette = demoTracks[0].colourPalette;
         }
-        return { ...track, colourPalette: palette };
+        
+        // If no valid palette in response, use default
+        return { ...track, colourPalette: demoTracks[0].colourPalette };
         } catch (err) {
         console.error('Error fetching color palette:', err);
         return { ...track, colourPalette: demoTracks[0].colourPalette };
@@ -99,19 +111,21 @@ const useSpotify = () => {
     }
   }
 
-  async function fetchTracksFromSearch(query: string): Promise<SpotifyTrack[]> {
+  const fetchTracksFromSearch = useCallback(async (query: string): Promise<SpotifyTrack[]> => {
     try {
       dispatch({ type: 'spotify/setLoading', payload: true });
       dispatch({ type: 'spotify/setError', payload: null });
+      dispatch({ type: 'spotify/clearTracks' });
+      dispatch({ type: 'spotify/setCurrentQuery', payload: query });
       
-      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&offset=0&limit=12`);
       if (!res.ok) throw new Error('Failed to fetch tracks from search');
       
       const data = await res.json();
       
-      if (data.tracks && data.tracks.length > 0) {
+      if (data.items && data.items.length > 0) {
         // Transform the raw Spotify data to match our SpotifyTrack interface
-        const transformedTracks: SpotifyTrack[] = data.tracks.map((track: any) => ({
+        const transformedTracks: SpotifyTrack[] = data.items.map((track: any) => ({
           id: track.id,
           title: track.name,
           artist: track.artists.map((artist: any) => artist.name).join(', '),
@@ -119,6 +133,7 @@ const useSpotify = () => {
           album: track.album.name,
           albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
           songUrl: track.external_urls?.spotify || '',
+          previewUrl: track.previewUrl ?? null,
           colourPalette: demoTracks[0].colourPalette // Default palette until we fetch the real one
         }));
         
@@ -128,7 +143,10 @@ const useSpotify = () => {
         );
         
         dispatch({ type: 'spotify/setTracks', payload: tracksWithPalettes });
+        dispatch({ type: 'spotify/setHasMore', payload: data.hasMore });
+        dispatch({ type: 'spotify/setTotal', payload: data.total });
         dispatch({ type: 'spotify/setLoading', payload: false });
+        
         await fetch('/api/data/collection/bulk', {
           method: 'POST',
           headers: {
@@ -147,6 +165,66 @@ const useSpotify = () => {
       dispatch({ type: 'spotify/setError', payload: (err as Error).message });
       dispatch({ type: 'spotify/setTracks', payload: demoTracks });
       dispatch({ type: 'spotify/setLoading', payload: false });
+      throw err;
+    }
+  }, [dispatch])
+
+  async function fetchMoreTracks(query: string, offset: number, signal?: AbortSignal): Promise<{ items: SpotifyTrack[], hasMore: boolean, total: number } | null> {
+    try {
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&offset=${offset}&limit=12`, {
+        signal
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch more tracks');
+      
+      const data = await res.json();
+      
+      if (data.items && data.items.length > 0) {
+        // Transform the raw Spotify data to match our SpotifyTrack interface
+        const transformedTracks: SpotifyTrack[] = data.items.map((track: any) => ({
+          id: track.id,
+          title: track.name,
+          artist: track.artists.map((artist: any) => artist.name).join(', '),
+          artists: track.artists.map((artist: any) => artist.name),
+          album: track.album.name,
+          albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
+          songUrl: track.external_urls?.spotify || '',
+          previewUrl: track.previewUrl ?? null,
+          colourPalette: demoTracks[0].colourPalette // Default palette until we fetch the real one
+        }));
+        
+        // Fetch color palettes for each track in background (non-blocking)
+        setTimeout(() => {
+          Promise.all(
+            transformedTracks.map(track => fetchColourPalette(track))
+          ).then(tracksWithPalettes => {
+            // Update tracks with palettes in background
+            dispatch({ type: 'spotify/appendTracks', payload: tracksWithPalettes });
+            
+            // Store in database
+            fetch('/api/data/collection/bulk', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ tracks: tracksWithPalettes }),
+            }).catch(console.error);
+          }).catch(console.error);
+        }, 100);
+        
+        return {
+          items: transformedTracks,
+          hasMore: data.hasMore,
+          total: data.total
+        };
+      }
+      
+      return null;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw err;
+      }
+      console.error('Error fetching more tracks:', err);
       throw err;
     }
   }
@@ -178,7 +256,65 @@ const useSpotify = () => {
   }
   
 
-  return { fetchRecentlyPlayedTracksFromApi, fetchColourPalette, fetchSpotifyTracksAndPalettes, fetchTracksFromSearch };
+  const fetchAlbumsFromSearch = useCallback(async (query: string): Promise<any[]> => {
+    try {
+      dispatch({ type: 'spotify/setLoading', payload: true });
+      dispatch({ type: 'spotify/setError', payload: null });
+      dispatch({ type: 'spotify/clearAlbums' });
+      dispatch({ type: 'spotify/setCurrentQuery', payload: query });
+      
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&offset=0&limit=12&type=album`);
+      if (!res.ok) throw new Error('Failed to fetch albums from search');
+      
+      const data = await res.json();
+      
+      if (data.items && data.items.length > 0) {
+        // Transform the raw Spotify data to match our SpotifyAlbum interface
+        const transformedAlbums = data.items.map((album: any) => ({
+          id: album.id,
+          name: album.name,
+          artists: album.artists.map((artist: any) => artist.name),
+          albumCover: album.images[0]?.url || '/placeholder.svg?height=300&width=300',
+          albumUrl: album.external_urls?.spotify || '',
+          releaseDate: album.release_date,
+          totalTracks: album.total_tracks,
+          colourPalette: demoTracks[0].colourPalette // Default palette until we fetch the real one
+        }));
+        
+        // Fetch color palettes for each album
+        const albumsWithPalettes = await Promise.all(
+          transformedAlbums.map(async (album: any) => {
+            try {
+              const paletteResult = await fetchColourPalette({ ...album, albumCover: album.albumCover });
+              return { ...album, colourPalette: paletteResult.colourPalette };
+            } catch (err) {
+              console.error('Error fetching color palette:', err);
+              return { ...album, colourPalette: demoTracks[0].colourPalette };
+            }
+          })
+        );
+        
+        dispatch({ type: 'spotify/setAlbums', payload: albumsWithPalettes });
+        dispatch({ type: 'spotify/setHasMore', payload: data.hasMore });
+        dispatch({ type: 'spotify/setTotal', payload: data.total });
+        dispatch({ type: 'spotify/setLoading', payload: false });
+        
+        return albumsWithPalettes;
+      }
+      
+      dispatch({ type: 'spotify/setAlbums', payload: [] });
+      dispatch({ type: 'spotify/setLoading', payload: false });
+      return [];
+    } catch (err) {
+      console.error('Error fetching albums from search:', err);
+      dispatch({ type: 'spotify/setError', payload: (err as Error).message });
+      dispatch({ type: 'spotify/setAlbums', payload: [] });
+      dispatch({ type: 'spotify/setLoading', payload: false });
+      throw err;
+    }
+  }, [dispatch])
+
+  return { fetchRecentlyPlayedTracksFromApi, fetchColourPalette, fetchSpotifyTracksAndPalettes, fetchTracksFromSearch, fetchMoreTracks, fetchAlbumsFromSearch };
 };
 
 
