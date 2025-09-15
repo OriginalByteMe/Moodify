@@ -56,6 +56,43 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
         )
         
         setTracks(tracksWithCovers)
+
+        // Persist album and its tracks
+        try {
+          // Upsert album first
+          await fetch('/api/data/album/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ albums: [{
+              spotifyId: album.id,
+              album: album.name,
+              artists: album.artists.join(', '),
+              albumCover: album.albumCover,
+              colourPalette: album.colourPalette,
+            }] })
+          }).catch(console.error)
+
+          // Normalize tracks to SpotifyTrack shape and bulk insert
+          const normalizedTracks = tracksWithCovers.map((t: any) => ({
+            id: t.id,
+            title: t.name ?? t.title,
+            artists: Array.isArray(t.artists) ? t.artists.map((a: any) => a?.name).filter(Boolean) : [],
+            album: album.name,
+            albumId: album.id,
+            albumCover: album.albumCover,
+            songUrl: t.external_urls?.spotify || '',
+            previewUrl: t.previewUrl ?? null,
+            colourPalette: t.colourPalette ?? album.colourPalette
+          }))
+
+          await fetch('/api/data/collection/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tracks: normalizedTracks }),
+          }).catch(console.error)
+        } catch (persistErr) {
+          console.error('Error persisting album and tracks:', persistErr)
+        }
       }
     } catch (error) {
       console.error('Error fetching album tracks:', error)
