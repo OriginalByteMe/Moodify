@@ -13,8 +13,16 @@ type Ctx = {
   resume: () => void
   stop: () => void
   setVolume: (v: number) => void
+  toggleMute: () => void
   isPlaying: boolean
   currentTrack: SpotifyTrack | null
+  duration: number
+  currentTime: number
+  progress: number
+  volume: number
+  muted: boolean
+  timeLeft: number
+  timeLeftFormatted: string
 }
 
 const PreviewPlayerContext = createContext<Ctx | null>(null)
@@ -153,15 +161,19 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
     if (audioRef.current) audioRef.current.volume = next ? 0 : volume
   }
 
-  const value = useMemo(
-    () => ({ play, pause, resume, stop, setVolume, isPlaying, currentTrack }),
-    [isPlaying, currentTrack]
-  )
-
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0
   const timeLeft = Math.max(0, Math.round((duration - currentTime) || 0))
   const tlMin = Math.floor(timeLeft / 60)
   const tlSec = String(timeLeft % 60).padStart(2, "0")
+
+  const value = useMemo(
+    () => ({
+      play, pause, resume, stop, setVolume, toggleMute,
+      isPlaying, currentTrack, duration, currentTime, progress, volume, muted,
+      timeLeft, timeLeftFormatted: `${tlMin}:${tlSec}`
+    }),
+    [isPlaying, currentTrack, duration, currentTime, progress, volume, muted, timeLeft, tlMin, tlSec]
+  )
 
   const isFullscreen = useSelector((s: RootState) => s.spotify.isFullscreenMode)
 

@@ -2,10 +2,10 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import { SpotifyTrack } from "@/app/utils/interfaces"
-import { Pause, Play } from "lucide-react"
+import { Pause, Play, Volume2, VolumeX } from "lucide-react"
 import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
 import { useDispatch } from "react-redux"
 import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/features/spotifySlice"
@@ -48,21 +48,40 @@ function normalizeTrack(t: any) {
 export default function ShareClient({ track }: { track: SpotifyTrack }) {
   const shown = normalizeTrack(track)
   const dispatch = useDispatch()
-  const { isPlaying, play, pause, resume } = usePreviewPlayer()
+  const {
+    isPlaying, play, pause, resume, progress, volume, muted,
+    toggleMute, setVolume, timeLeftFormatted
+  } = usePreviewPlayer()
+  const [needsUserAction, setNeedsUserAction] = useState(false)
 
   useEffect(() => {
     // Hide global mini player and set selected track for background
     dispatch(enterFullscreen())
     dispatch(setSelectedTrack(shown as any))
-    // Try to start playback (may be blocked)
+    // Try to start playback (may be blocked by browser autoplay policy)
     if (shown.previewUrl) {
-      try { play(shown as any) } catch {}
+      play(shown as any)
+      // Check if autoplay was blocked after a short delay
+      setTimeout(() => {
+        if (!isPlaying) {
+          setNeedsUserAction(true)
+        }
+      }, 500)
+    } else {
+      setNeedsUserAction(true)
     }
     return () => {
       dispatch(exitFullscreen())
       dispatch(setSelectedTrack(null))
     }
   }, [dispatch, play, track])
+
+  const handleUserPlay = () => {
+    if (shown.previewUrl) {
+      play(shown as any)
+      setNeedsUserAction(false)
+    }
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -108,7 +127,7 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
             <div className="text-sm font-semibold truncate">{shown.title}</div>
             <div className="text-xs text-gray-600 truncate">{(shown.artists || []).join(', ')}</div>
             <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className={`h-full ${isPlaying ? 'bg-green-600 w-1/2' : 'bg-gray-300 w-0'}`} />
+              <div className="h-full bg-green-600 transition-[width]" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -119,9 +138,57 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
             ) : (
               <span className="text-xs text-gray-600">No preview</span>
             )}
+
+            {/* Volume controls */}
+            {shown.previewUrl && (
+              <div className="hidden sm:flex items-center gap-1">
+                <button
+                  aria-label={muted ? "Unmute" : "Mute"}
+                  onClick={toggleMute}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+                >
+                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <input
+                  aria-label="Volume"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={muted ? 0 : volume}
+                  onChange={(e) => setVolume(parseFloat(e.target.value))}
+                  className="w-20 accent-green-600"
+                />
+              </div>
+            )}
+
+            {/* Time remaining */}
+            {shown.previewUrl && (
+              <div className="text-xs tabular-nums text-gray-600 w-12 text-right">-{timeLeftFormatted}</div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* User action overlay when autoplay is blocked */}
+      {needsUserAction && shown.previewUrl && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-30">
+          <div className="bg-white/95 backdrop-blur rounded-2xl p-8 text-center shadow-2xl border border-white/20">
+            <div className="mb-4">
+              <Play className="w-16 h-16 mx-auto text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to play</h3>
+            <p className="text-gray-600 mb-6 max-w-xs">Click play to start listening to this track</p>
+            <button
+              onClick={handleUserPlay}
+              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full flex items-center gap-2 mx-auto transition-colors"
+            >
+              <Play className="w-5 h-5" />
+              Play Track
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

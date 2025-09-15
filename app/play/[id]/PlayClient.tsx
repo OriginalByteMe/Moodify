@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import { SpotifyTrack } from "@/app/utils/interfaces"
-import { Pause, Play, Share2, X } from "lucide-react"
+import { Pause, Play, Share2, Volume2, VolumeX, X } from "lucide-react"
 import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
 import { useDispatch } from "react-redux"
 import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/features/spotifySlice"
@@ -60,7 +60,10 @@ export default function PlayClient({ trackId }: { trackId: string }) {
   const shown = normalizeTrack(initial || data)
   const router = useRouter()
   const dispatch = useDispatch()
-  const { isPlaying, play, pause, resume } = usePreviewPlayer()
+  const {
+    isPlaying, play, pause, resume, progress, volume, muted,
+    toggleMute, setVolume, timeLeftFormatted
+  } = usePreviewPlayer()
   const [leaving, setLeaving] = useState(false)
   const [entered, setEntered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -164,7 +167,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
             <div className="text-sm font-semibold truncate">{shown?.title || ''}</div>
             <div className="text-xs text-gray-600 truncate">{(shown?.artists || []).join(', ')}</div>
             <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className={`h-full ${isPlaying ? 'bg-green-600 w-1/2' : 'bg-gray-300 w-0'}`} />
+              <div className="h-full bg-green-600 transition-[width]" style={{ width: `${progress * 100}%` }} />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -174,6 +177,34 @@ export default function PlayClient({ trackId }: { trackId: string }) {
               </button>
             ) : (
               <span className="text-xs text-gray-600">No preview</span>
+            )}
+
+            {/* Volume controls */}
+            {shown?.previewUrl && (
+              <div className="hidden sm:flex items-center gap-1">
+                <button
+                  aria-label={muted ? "Unmute" : "Mute"}
+                  onClick={toggleMute}
+                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
+                >
+                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <input
+                  aria-label="Volume"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={muted ? 0 : volume}
+                  onChange={(e) => setVolume(parseFloat(e.target.value))}
+                  className="w-20 accent-green-600"
+                />
+              </div>
+            )}
+
+            {/* Time remaining */}
+            {shown?.previewUrl && (
+              <div className="text-xs tabular-nums text-gray-600 w-12 text-right">-{timeLeftFormatted}</div>
             )}
           </div>
         </div>
