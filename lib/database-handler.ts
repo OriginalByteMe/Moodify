@@ -59,6 +59,7 @@ export const uploadTrackToDatabase = async (track: SpotifyTrack): Promise<void> 
         album: track.album,
         albumCover: track.albumCover,
         songUrl: track.songUrl,
+        previewUrl: track.previewUrl,
         colourPalette: track.colourPalette
       }),
     });
@@ -80,7 +81,7 @@ export const uploadTracksToDatabase = async (tracks: SpotifyTrack[]): Promise<an
       album: track.album,
       albumCover: track.albumCover,
       songUrl: track.songUrl,
-      // previewUrl is not part of BulkCreateTracksRequest schema; omit it
+      previewUrl: track.previewUrl,
       colourPalette: track.colourPalette,
     };
 
@@ -133,6 +134,7 @@ export const patchTrack = async (
     album: string;
     albumCover: string;
     songUrl: string;
+    previewUrl: string | null;
     colourPalette: number[][];
     spotifyAlbumId: string;
     albumColourPalette: number[][];

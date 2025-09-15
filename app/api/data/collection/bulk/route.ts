@@ -89,6 +89,8 @@ export async function POST(request: NextRequest) {
             const payload: any = {};
             // Send palette if present
             if (Array.isArray(original.colourPalette)) payload.colourPalette = original.colourPalette;
+            // Send preview URL if present
+            if (original.previewUrl !== undefined) payload.previewUrl = original.previewUrl;
             // Send audio features if present
             const keys: (keyof SpotifyTrack)[] = [
               'danceability','energy','key','loudness','mode','speechiness','acousticness','instrumentalness','liveness','valence','tempo','time_signature','duration_ms','audio_features_status'

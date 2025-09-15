@@ -147,7 +147,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
         <p className="mt-1 text-sm text-white/60">{shown?.album || ''}</p>
 
         {/* Palette */}
-        <div className="mt-8 grid grid-cols-5 gap-3 max-w-2xl mx-auto">
+        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
           {(shown?.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full shadow-lg border-2 border-white/30" style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />

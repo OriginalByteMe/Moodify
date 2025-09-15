@@ -101,7 +101,7 @@ export default function FullscreenPlayer() {
         <p className="mt-1 text-sm text-white/60">{track.album}</p>
 
         {/* Palette */}
-        <div className="mt-8 grid grid-cols-5 gap-3 max-w-2xl mx-auto">
+        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
           {(track.colourPalette || []).slice(0,5).map((c, i) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div

@@ -52,36 +52,17 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
     isPlaying, play, pause, resume, progress, volume, muted,
     toggleMute, setVolume, timeLeftFormatted
   } = usePreviewPlayer()
-  const [needsUserAction, setNeedsUserAction] = useState(false)
-
   useEffect(() => {
     // Hide global mini player and set selected track for background
     dispatch(enterFullscreen())
     dispatch(setSelectedTrack(shown as any))
-    // Try to start playback (may be blocked by browser autoplay policy)
-    if (shown.previewUrl) {
-      play(shown as any)
-      // Check if autoplay was blocked after a short delay
-      setTimeout(() => {
-        if (!isPlaying) {
-          setNeedsUserAction(true)
-        }
-      }, 500)
-    } else {
-      setNeedsUserAction(true)
-    }
+    // Don't auto-play on share page - let user control playback manually
     return () => {
       dispatch(exitFullscreen())
       dispatch(setSelectedTrack(null))
     }
-  }, [dispatch, play, track])
-
-  const handleUserPlay = () => {
-    if (shown.previewUrl) {
-      play(shown as any)
-      setNeedsUserAction(false)
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, shown?.id])
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -98,7 +79,7 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
       </div>
 
       {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center justify-center pt-24 pb-40 px-6 text-center">
+      <div className="relative z-10 max-w-3xl w-full px-6 text-center mx-auto pt-24 pb-40">
         <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
           <Image src={shown.albumCover || '/placeholder.svg?height=300&width=300'} alt={shown.title} width={320} height={320} className="w-full h-full object-cover" />
         </div>
@@ -107,7 +88,7 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
         <p className="mt-1 text-sm text-white/60">{shown.album}</p>
 
         {/* Palette */}
-        <div className="mt-8 grid grid-cols-5 gap-3 max-w-2xl mx-auto">
+        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
           {(shown.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full shadow-lg border-2 border-white/30" style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
@@ -170,25 +151,6 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
         </div>
       </div>
 
-      {/* User action overlay when autoplay is blocked */}
-      {needsUserAction && shown.previewUrl && (
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-30">
-          <div className="bg-white/95 backdrop-blur rounded-2xl p-8 text-center shadow-2xl border border-white/20">
-            <div className="mb-4">
-              <Play className="w-16 h-16 mx-auto text-green-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Ready to play</h3>
-            <p className="text-gray-600 mb-6 max-w-xs">Click play to start listening to this track</p>
-            <button
-              onClick={handleUserPlay}
-              className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-full flex items-center gap-2 mx-auto transition-colors"
-            >
-              <Play className="w-5 h-5" />
-              Play Track
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
