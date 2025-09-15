@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { X, ExternalLink, Play, Clock, Calendar, Music, Palette, Wand2 } from 'lucide-react'
+import { X, ExternalLink, Play, Clock, Calendar, Music, Palette, Wand2, Music2, Ban } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SpotifyAlbum, SpotifyTrack } from '../utils/interfaces'
 import useSpotify from '@/hooks/useSpotify'
@@ -260,7 +260,14 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
                           className="object-cover"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Play className="w-4 h-4 text-white" />
+                          {track.previewUrl ? (
+                            <Play className="w-4 h-4 text-white" />
+                          ) : (
+                            <span className="relative" title="No preview available">
+                              <Music2 className="w-4 h-4 text-gray-200" />
+                              <Ban className="w-4 h-4 absolute inset-0 text-red-300" />
+                            </span>
+                          )}
                         </div>
                       </div>
 

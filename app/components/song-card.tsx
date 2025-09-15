@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Play, Wand2 } from 'lucide-react';
+import { Play, Wand2, Music2, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
 import useTheme from '@/hooks/useTheme';
@@ -73,6 +73,7 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const { applyPalette, resetPalette } = useTheme();
 	const currentTrack = track
 	const { play, stop } = usePreviewPlayer()
+  const hasPreview = Boolean(track.previewUrl)
 
 	const handleMagicWandClick = useCallback(() => {
 		if (!currentTrack) return;
@@ -112,8 +113,38 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 				src={track.albumCover || '/placeholder.svg?height=300&width=300'}
 				alt={track.album}
 			>
+				{/* Preview availability badge */}
+				<div className="absolute top-2 left-2">
+					<span
+						className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium shadow-sm backdrop-blur ${hasPreview ? 'bg-green-600/90 text-white' : 'bg-gray-700/80 text-gray-100'}`}
+						title={hasPreview ? 'Click the wand to play a preview' : 'No audio preview available'}
+					>
+						{hasPreview ? (
+							<>
+								<Play className="h-3.5 w-3.5" />
+								Preview
+							</>
+						) : (
+							<>
+								<span className="relative inline-block">
+									<Music2 className="h-3.5 w-3.5" />
+									<Ban className="h-3.5 w-3.5 absolute inset-0 text-red-400" />
+								</span>
+								No preview
+							</>
+						)}
+					</span>
+				</div>
+
+				{/* Hover overlay with action */}
 				<div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center'>
-					<Button size='icon' variant='secondary' className='rounded-full bg-green-500 hover:bg-green-600 h-12 w-12' onClick={handleMagicWandClick}>
+					<Button
+						size='icon'
+						variant='secondary'
+						className={`rounded-full h-12 w-12 ${hasPreview ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-500/70 hover:bg-gray-500/80'}`}
+						onClick={handleMagicWandClick}
+						title={hasPreview ? 'Apply colors and play preview' : 'Apply colors (no preview available)'}
+					>
 						<Wand2 className='h-6 w-6 fill-white text-white'  />
 					</Button>
 				</div>

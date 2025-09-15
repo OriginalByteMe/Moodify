@@ -1,47 +1,74 @@
-'use client';
+'use client'
 
-import React from 'react';
+import { RootState } from '@/lib/store'
+import { ShaderGradient, ShaderGradientCanvas } from '@shadergradient/react'
+import React, { useMemo } from 'react'
+import { useSelector } from 'react-redux'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import * as reactSpring from '@react-spring/three'
+
+function rgbToHex(rgb?: number[]): string {
+  if (!rgb || rgb.length < 3) return '#000000'
+  const toHex = (n: number) => {
+    const clamped = Math.max(0, Math.min(255, Math.round(n)))
+    return clamped.toString(16).padStart(2, '0')
+  }
+  return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`
+}
+
+function bpmToSpeed(bpm?: number): number {
+  if (!bpm || Number.isNaN(bpm)) return 0.4
+  const clamped = Math.max(60, Math.min(180, bpm))
+  // Map 60–180 BPM -> 0.2–1.0
+  return 0.2 + ((clamped - 60) / 120) * 0.8
+}
 
 export default function LavaLampBackground() {
-	return (
-		<div className='absolute inset-0 w-full h-full pointer-events-none select-none'>
-			<div className='absolute inset-0 bg-gradient-to-br from-gradient-start to-gradient-end opacity-80' />
-			<div className='absolute inset-0'>
-				<div
-					className='absolute w-72 h-72 bg-blob-primary rounded-full blur-xl opacity-50 animate-[blob1_35s_infinite] left-0 top-0'
-				/>
-				<div
-					className='absolute w-64 h-64 bg-blob-secondary rounded-full blur-xl opacity-40 animate-[blob2_28s_infinite] right-0 top-0'
-				/>
-				<div
-					className='absolute w-80 h-80 bg-blob-tertiary rounded-full blur-xl opacity-45 animate-[blob3_32s_infinite] right-1/4 top-0'
-				/>
-				<div
-					className='absolute w-56 h-56 bg-blob-primary rounded-full blur-xl opacity-55 animate-[blob4_25s_infinite] left-1/3 top-0'
-				/>
-				<div
-					className='absolute w-[30rem] h-[30rem] bg-blob-secondary rounded-full blur-xl opacity-60 animate-[blob2_48s_infinite] right-0 bottom-1/4'
-				/>
-				<div
-					className='absolute w-[28rem] h-[28rem] bg-blob-tertiary rounded-full blur-xl opacity-50 animate-[blob3_39s_infinite] left-1/4 bottom-0'
-				/>
-				<div
-					className='absolute w-[34rem] h-[34rem] bg-blob-primary rounded-full blur-xl opacity-40 animate-[blob4_42s_infinite] right-1/4 top-1/4'
-				/>
-				<div
-					className='absolute w-[26rem] h-[26rem] bg-blob-secondary rounded-full blur-xl opacity-50 animate-[blob5_87s_infinite] left-1/3 top-1/3'
-				/>
-				<div
-					className='absolute w-[21rem] h-[21rem] bg-blob-secondary rounded-full blur-xl opacity-50 animate-[blob6_52s_infinite] left-1/3 top-1/3'
-				/>
-				<div
-					className='absolute w-[21rem] h-[21rem] bg-blob-secondary rounded-full blur-xl opacity-50 animate-[blob7_11s_infinite] right-1/3 top-2/3'
-				/>
-				<div
-					className='absolute w-[12rem] h-[12rem] bg-blob-secondary rounded-full blur-xl opacity-50 animate-[blob8_10s_infinite] left-3/4 top-1/3'
-				/>
-			</div>
-			<div className='absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40' />
-		</div>
-	);
+  const selectedTrack = useSelector((s: RootState) => s.spotify.selectedTrack)
+
+  const palette = selectedTrack?.colourPalette
+  const color1 = rgbToHex(palette?.[0] ?? [255, 255, 255])
+  const color2 = rgbToHex(palette?.[1] ?? [0, 128, 255])
+  const color3 = rgbToHex(palette?.[2] ?? [0, 0, 0])
+
+  const speed = useMemo(() => bpmToSpeed(selectedTrack?.tempo), [selectedTrack?.tempo])
+
+  const type = useMemo<'plane' | 'sphere' | 'waterPlane'>(() => {
+    const id = selectedTrack?.id ?? 'default'
+    let hash = 0
+    for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0
+    const types: Array<'plane' | 'waterPlane'> = ['plane', 'waterPlane']
+    const idx = Math.abs(hash) % types.length
+    return types[idx]
+  }, [selectedTrack?.id])
+
+  return (
+    <div className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'>
+      <ShaderGradientCanvas
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+      >
+        <ShaderGradient
+          // Always animated
+          animate='on'
+          // Randomized among 3 types, stable per track
+          type={type}
+          // Colors from track palette
+          color1={color1}
+          color2={color2}
+          color3={color3}
+          // Drive speed from BPM
+          uSpeed={speed}
+          // Subtle defaults that work for all types
+          uStrength={4}
+          uDensity={1.3}
+          uFrequency={5.5}
+          reflection={0.1}
+          grain='on'
+          lightType='3d'
+        />
+      </ShaderGradientCanvas>
+      {/* Readability overlay */}
+      <div className='absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40' />
+    </div>
+  )
 }
