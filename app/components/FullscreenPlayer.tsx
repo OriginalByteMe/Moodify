@@ -5,11 +5,11 @@ import Link from "next/link"
 import { useDispatch, useSelector } from "react-redux"
 import { RootState } from "@/lib/store"
 import { exitFullscreen } from "@/lib/features/spotifySlice"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
-import { Pause, Play, Share2, Volume2, VolumeX, X } from "lucide-react"
-import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
+import { Share2, X } from "lucide-react"
 import { usePathname } from "next/navigation"
+import PlayerControls from "@/app/components/PlayerControls"
 
 export default function FullscreenPlayer() {
   const dispatch = useDispatch()
@@ -17,10 +17,6 @@ export default function FullscreenPlayer() {
   const track = useSelector((s: RootState) => s.spotify.selectedTrack)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [copied, setCopied] = useState(false)
-  const {
-    isPlaying, pause, resume, currentTrack, progress, volume, muted,
-    toggleMute, setVolume, timeLeftFormatted
-  } = usePreviewPlayer()
   const pathname = usePathname()
 
   // Close immersive overlay with Escape
@@ -53,7 +49,6 @@ export default function FullscreenPlayer() {
     } catch {}
   }
 
-  const hasPreview = Boolean(track?.previewUrl)
 
   // Do not render overlay on share pages; those have their own layout
   if (pathname?.startsWith('/share') || pathname?.startsWith('/play')) return null
@@ -117,55 +112,10 @@ export default function FullscreenPlayer() {
 
       {/* Big player pill bottom center */}
       <div className="absolute bottom-10 left-0 right-0 flex justify-center z-[110]">
-        <div className="w-[92%] sm:w-[640px] px-4 py-3 rounded-full bg-white/95 text-gray-900 shadow-2xl border border-gray-200 backdrop-blur flex items-center gap-4">
-          <div className="relative w-12 h-12 overflow-hidden rounded-full border border-gray-200">
-            <Image src={track.albumCover || '/placeholder.svg?height=40&width=40'} alt={track.title} fill className="object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">{track.title}</div>
-            <div className="text-xs text-gray-600 truncate">{track.artists?.join(', ')}</div>
-            <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-green-600 transition-[width]" style={{ width: `${progress * 100}%` }} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {hasPreview ? (
-              <button onClick={isPlaying ? pause : resume} className="p-3 rounded-full bg-gray-100 hover:bg-gray-200" aria-label={isPlaying ? 'Pause' : 'Play'}>
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </button>
-            ) : (
-              <span className="text-xs text-gray-600">No preview</span>
-            )}
-
-            {/* Volume controls */}
-            {hasPreview && (
-              <div className="hidden sm:flex items-center gap-1">
-                <button
-                  aria-label={muted ? "Unmute" : "Mute"}
-                  onClick={toggleMute}
-                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-                >
-                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-                <input
-                  aria-label="Volume"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={muted ? 0 : volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="w-20 accent-green-600"
-                />
-              </div>
-            )}
-
-            {/* Time remaining */}
-            {hasPreview && (
-              <div className="text-xs tabular-nums text-gray-600 w-12 text-right">-{timeLeftFormatted}</div>
-            )}
-          </div>
-        </div>
+        <PlayerControls
+          track={track}
+          variant="large"
+        />
       </div>
 
       {/* Copied toast */}

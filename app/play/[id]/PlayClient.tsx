@@ -6,12 +6,13 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import { SpotifyTrack } from "@/app/utils/interfaces"
-import { Pause, Play, Share2, Volume2, VolumeX, X } from "lucide-react"
-import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
+import { Share2, X } from "lucide-react"
 import { useDispatch } from "react-redux"
 import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/features/spotifySlice"
+import PlayerControls from "@/app/components/PlayerControls"
 
 function normalizeTrack(t: any) {
+  if (!t) return null
   const artists = Array.isArray(t?.artists)
     ? t.artists
     : typeof t?.artists === 'string'
@@ -60,10 +61,6 @@ export default function PlayClient({ trackId }: { trackId: string }) {
   const shown = normalizeTrack(initial || data)
   const router = useRouter()
   const dispatch = useDispatch()
-  const {
-    isPlaying, play, pause, resume, progress, volume, muted,
-    toggleMute, setVolume, timeLeftFormatted
-  } = usePreviewPlayer()
   const [leaving, setLeaving] = useState(false)
   const [entered, setEntered] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -76,10 +73,6 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
     // Only show entrance animation after track is loaded
     const timer = setTimeout(() => setEntered(true), initial ? 10 : 100)
-
-    if (shown?.previewUrl) {
-      try { play(shown as any) } catch {}
-    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleBack()
     }
@@ -107,11 +100,11 @@ export default function PlayClient({ trackId }: { trackId: string }) {
     } catch {}
   }
 
+  if (!shown) return null
+
   return (
     <div className={`relative min-h-screen overflow-hidden transition-all duration-300 ease-out ${entered && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-      {shown && (
-        <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
-      )}
+      <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
@@ -159,55 +152,11 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
       {/* Big player pill bottom center */}
       <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
-        <div className="w-[92%] sm:w-[640px] px-4 py-3 rounded-full bg-white/95 text-gray-900 shadow-2xl border border-gray-200 backdrop-blur flex items-center gap-4">
-          <div className="relative w-12 h-12 overflow-hidden rounded-full border border-gray-200">
-            <Image src={(shown?.albumCover) || '/placeholder.svg?height=40&width=40'} alt={shown?.title || ''} fill className="object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">{shown?.title || ''}</div>
-            <div className="text-xs text-gray-600 truncate">{(shown?.artists || []).join(', ')}</div>
-            <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-green-600 transition-[width]" style={{ width: `${progress * 100}%` }} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {shown?.previewUrl ? (
-              <button onClick={isPlaying ? pause : resume} className="p-3 rounded-full bg-gray-100 hover:bg-gray-200" aria-label={isPlaying ? 'Pause' : 'Play'}>
-                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-              </button>
-            ) : (
-              <span className="text-xs text-gray-600">No preview</span>
-            )}
-
-            {/* Volume controls */}
-            {shown?.previewUrl && (
-              <div className="hidden sm:flex items-center gap-1">
-                <button
-                  aria-label={muted ? "Unmute" : "Mute"}
-                  onClick={toggleMute}
-                  className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-                >
-                  {muted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </button>
-                <input
-                  aria-label="Volume"
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={muted ? 0 : volume}
-                  onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="w-20 accent-green-600"
-                />
-              </div>
-            )}
-
-            {/* Time remaining */}
-            {shown?.previewUrl && (
-              <div className="text-xs tabular-nums text-gray-600 w-12 text-right">-{timeLeftFormatted}</div>
-            )}
-          </div>
-        </div>
+        <PlayerControls
+          track={shown}
+          variant="large"
+          autoPlayOnMount={true}
+        />
       </div>
 
       {copied && (
