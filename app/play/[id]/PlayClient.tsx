@@ -46,8 +46,18 @@ function normalizeTrack(t: any) {
   }
 }
 
-export default function PlayClient({ track }: { track: SpotifyTrack }) {
-  const shown = normalizeTrack(track)
+import { useSelector } from 'react-redux'
+import { RootState } from '@/lib/store'
+import { useGetTrackByIdQuery, tracksApi } from '@/lib/services/tracksApi'
+
+export default function PlayClient({ trackId }: { trackId: string }) {
+  const selected = useSelector((s: RootState) => s.spotify.selectedTrack)
+  const preexisting = useSelector((s: RootState) => s.spotify.tracks.find(t => t.id === trackId))
+  const albumTracks = useSelector((s: RootState) => s.spotify.albums.flatMap(album => album.tracks || []))
+  const fromAlbums = albumTracks.find(t => t.id === trackId)
+  const initial = selected?.id === trackId ? selected : preexisting || fromAlbums || null
+  const { data, isFetching } = useGetTrackByIdQuery(trackId, { skip: !!initial })
+  const shown = normalizeTrack(initial || data)
   const router = useRouter()
   const dispatch = useDispatch()
   const { isPlaying, play, pause, resume } = usePreviewPlayer()
@@ -57,10 +67,14 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
 
   useEffect(() => {
     // Enter immersive mode: hide mini-player, set track, try autoplay
+    if (!shown) return
     dispatch(enterFullscreen())
     dispatch(setSelectedTrack(shown as any))
-    setTimeout(() => setEntered(true), 10)
-    if (shown.previewUrl) {
+
+    // Only show entrance animation after track is loaded
+    const timer = setTimeout(() => setEntered(true), initial ? 10 : 100)
+
+    if (shown?.previewUrl) {
       try { play(shown as any) } catch {}
     }
     const onKey = (e: KeyboardEvent) => {
@@ -68,12 +82,13 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
     }
     window.addEventListener('keydown', onKey)
     return () => {
+      clearTimeout(timer)
       window.removeEventListener('keydown', onKey)
       dispatch(exitFullscreen())
       dispatch(setSelectedTrack(null))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch])
+  }, [dispatch, shown?.id])
 
   const handleBack = () => {
     setLeaving(true)
@@ -82,7 +97,7 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
 
   const onShare = async () => {
     try {
-      const url = `${window.location.origin}/share/${encodeURIComponent(shown.id)}`
+      const url = `${window.location.origin}/share/${encodeURIComponent(shown?.id || trackId)}`
       await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -91,7 +106,9 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
 
   return (
     <div className={`relative min-h-screen overflow-hidden transition-all duration-300 ease-out ${entered && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-      <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
+      {shown && (
+        <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
+      )}
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
@@ -120,15 +137,15 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
       {/* Center content */}
       <div className="relative z-10 max-w-3xl w-full px-6 text-center mx-auto pt-24 pb-40">
         <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-          <Image src={shown.albumCover || '/placeholder.svg?height=300&width=300'} alt={shown.title} width={320} height={320} className="w-full h-full object-cover" />
+          <Image src={(shown?.albumCover) || '/placeholder.svg?height=300&width=300'} alt={shown?.title || ''} width={320} height={320} className="w-full h-full object-cover" />
         </div>
-        <h1 className="mt-6 text-3xl sm:text-5xl font-bold text-white drop-shadow">{shown.title}</h1>
-        <p className="mt-2 text-lg sm:text-xl text-white/80">{(shown.artists || []).join(', ')}</p>
-        <p className="mt-1 text-sm text-white/60">{shown.album}</p>
+        <h1 className="mt-6 text-3xl sm:text-5xl font-bold text-white drop-shadow">{shown?.title || ''}</h1>
+        <p className="mt-2 text-lg sm:text-xl text-white/80">{(shown?.artists || []).join(', ')}</p>
+        <p className="mt-1 text-sm text-white/60">{shown?.album || ''}</p>
 
         {/* Palette */}
         <div className="mt-8 grid grid-cols-5 gap-3 max-w-2xl mx-auto">
-          {(shown.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
+          {(shown?.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full shadow-lg border-2 border-white/30" style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
               <span className="text-[10px] text-white/80 font-mono">{c[0]},{c[1]},{c[2]}</span>
@@ -141,17 +158,17 @@ export default function PlayClient({ track }: { track: SpotifyTrack }) {
       <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
         <div className="w-[92%] sm:w-[640px] px-4 py-3 rounded-full bg-white/95 text-gray-900 shadow-2xl border border-gray-200 backdrop-blur flex items-center gap-4">
           <div className="relative w-12 h-12 overflow-hidden rounded-full border border-gray-200">
-            <Image src={shown.albumCover || '/placeholder.svg?height=40&width=40'} alt={shown.title} fill className="object-cover" />
+            <Image src={(shown?.albumCover) || '/placeholder.svg?height=40&width=40'} alt={shown?.title || ''} fill className="object-cover" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">{shown.title}</div>
-            <div className="text-xs text-gray-600 truncate">{(shown.artists || []).join(', ')}</div>
+            <div className="text-sm font-semibold truncate">{shown?.title || ''}</div>
+            <div className="text-xs text-gray-600 truncate">{(shown?.artists || []).join(', ')}</div>
             <div className="mt-1 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
               <div className={`h-full ${isPlaying ? 'bg-green-600 w-1/2' : 'bg-gray-300 w-0'}`} />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {shown.previewUrl ? (
+            {shown?.previewUrl ? (
               <button onClick={isPlaying ? pause : resume} className="p-3 rounded-full bg-gray-100 hover:bg-gray-200" aria-label={isPlaying ? 'Pause' : 'Play'}>
                 {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
               </button>

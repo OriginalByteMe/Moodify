@@ -1,12 +1,14 @@
 import Image from 'next/image';
 import { Play, Wand2, Music2, Ban, Maximize2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { tracksApi } from '@/lib/services/tracksApi';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
 import useTheme from '@/hooks/useTheme';
 import { RootState } from '@/lib/store';
 import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import type { AppDispatch } from '@/lib/store';
 import { openModal } from '@/lib/features/spotifySlice';
 import { usePreviewPlayer } from '@/app/components/PreviewPlayer';
 
@@ -70,7 +72,7 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const [isJiggling, setIsJiggling] = useState(false)
 	const [showPalette, setShowPalette] = useState(false)
 	const { selectedTrack } = useSelector((state: RootState) => state.spotify)
-	const dispatch = useDispatch();
+	const dispatch = useDispatch<AppDispatch>();
 	const { applyPalette, resetPalette } = useTheme();
 	const currentTrack = track
 	const { play, stop } = usePreviewPlayer()
@@ -100,9 +102,15 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 
 	const handleEnterImmersive = useCallback(() => {
 		if (!currentTrack) return;
+		// Prime Redux cache and set selectedTrack for instant render
+		try {
+			dispatch({ type: 'spotify/setSelectedTrack', payload: currentTrack });
+			// Prefetch via RTK Query (no-op if already cached)
+			dispatch(tracksApi.util.prefetch('getTrackById', currentTrack.id, { force: false }));
+		} catch {}
 		// Navigate to dedicated play page for smoother transition
 		router.push(`/play/${encodeURIComponent(currentTrack.id)}`)
-	}, [currentTrack, router]);
+	}, [currentTrack, router, dispatch]);
 
 	const handleInfoClick = useCallback(() => {
 		if (!currentTrack) return;

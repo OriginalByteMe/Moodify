@@ -18,6 +18,21 @@ export interface ISpotifyState {
     album: SpotifyAlbum | null;
     isOpen: boolean;
   };
+  // Client-side cache of search results keyed by raw query
+  trackCache?: Record<string, {
+    items: SpotifyTrack[];
+    total: number;
+    hasMore: boolean;
+    offset: number;
+    ts: number; // unix ms
+  }>;
+  albumCache?: Record<string, {
+    items: SpotifyAlbum[];
+    total: number;
+    hasMore: boolean;
+    offset: number;
+    ts: number; // unix ms
+  }>;
 }
 
 export interface SpotifyTrack {

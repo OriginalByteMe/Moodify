@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTracksFromDatabase, uploadTracksToDatabase, patchTrack } from '@/lib/database-handler';
+import { revalidateTag } from 'next/cache'
+import { trackTag } from '@/lib/get-track-cached'
 import type { SpotifyTrack } from '@/app/utils/interfaces';
 
 const ANALYZER_URL = process.env.AUDIO_ANALYZER_URL || 'https://originalbyteme--ai-audio-features-web-app.modal.run';
@@ -98,6 +100,8 @@ export async function POST(request: NextRequest) {
             if (Object.keys(payload).length > 0) {
               await patchTrack(s.spotifyId, payload).catch((e) => console.warn('[PatchTrack] Failed', s.spotifyId, e));
             }
+            // Revalidate cache tag for this track
+            try { revalidateTag(trackTag(s.spotifyId)) } catch {}
           })
         );
       }

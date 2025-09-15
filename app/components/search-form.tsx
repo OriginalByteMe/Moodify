@@ -8,7 +8,7 @@ import {SearchResults} from '@/components/search-results';
 import {useDebounce} from '@/hooks/use-debounce';
 import {useDispatch, useSelector} from 'react-redux';
 import useSpotify from '@/hooks/useSpotify';
-import { setSearchType, clearTracks, clearAlbums } from '@/lib/features/spotifySlice';
+import { setSearchType, clearTracks, clearAlbums, applyCachedResults } from '@/lib/features/spotifySlice';
 import { ISpotifyState } from '@/app/utils/interfaces';
 
 export function SearchForm() {
@@ -22,34 +22,59 @@ export function SearchForm() {
     const { fetchTracksFromSearch, fetchAlbumsFromSearch } = useSpotify();
 	const debouncedQuery = useDebounce(query, 500);
     const state = useSelector((state: { spotify: ISpotifyState }) => state.spotify);
-    const { isLoading, error, searchType } = state;
+    const { isLoading, error, searchType, trackCache, albumCache } = state;
+
+    const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+    // Helper function to check if cache is valid and apply results
+    const applyCacheIfValid = (type: 'track' | 'album', query: string): boolean => {
+        const cache = type === 'track' ? trackCache : albumCache;
+        const cached = cache?.[query];
+
+        if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+            dispatch(applyCachedResults({ type, query }));
+            return true;
+        }
+        return false;
+    };
 	useEffect(() => {
 		if (debouncedQuery) {
 			router.push(`/?q=${encodeURIComponent(debouncedQuery)}`, {scroll: false});
-			if (searchType === 'track') {
-				fetchTracksFromSearch(debouncedQuery);
-			} else {
-				fetchAlbumsFromSearch(debouncedQuery);
+
+			// Apply cache first, then fetch if needed
+			const cacheApplied = applyCacheIfValid(searchType, debouncedQuery);
+
+			if (!cacheApplied) {
+				if (searchType === 'track') {
+					fetchTracksFromSearch(debouncedQuery);
+				} else {
+					fetchAlbumsFromSearch(debouncedQuery);
+				}
 			}
 		} else {
 			dispatch(clearTracks());
 			dispatch(clearAlbums());
 			router.push('/', {scroll: false});
 		}
-	}, [debouncedQuery, searchType, router, dispatch, fetchTracksFromSearch, fetchAlbumsFromSearch]);
+	}, [debouncedQuery, searchType, router, dispatch]);
 
-	const handleSearchTypeChange = (type: 'track' | 'album') => {
-		dispatch(setSearchType(type));
-		dispatch(clearTracks());
-		dispatch(clearAlbums());
-		if (debouncedQuery) {
-			if (type === 'track') {
-				fetchTracksFromSearch(debouncedQuery);
-			} else {
-				fetchAlbumsFromSearch(debouncedQuery);
-			}
-		}
-	};
+    const handleSearchTypeChange = (type: 'track' | 'album') => {
+        dispatch(setSearchType(type));
+
+        if (debouncedQuery) {
+            // Try to apply cached results first for instant tab switching
+            const cacheApplied = applyCacheIfValid(type, debouncedQuery);
+
+            if (!cacheApplied) {
+                // Only fetch if no valid cache exists
+                if (type === 'track') {
+                    fetchTracksFromSearch(debouncedQuery);
+                } else {
+                    fetchAlbumsFromSearch(debouncedQuery);
+                }
+            }
+        }
+    };
 
 	return (
 		<div className='w-full max-w-3xl mx-auto'>

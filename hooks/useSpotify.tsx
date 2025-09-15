@@ -2,11 +2,15 @@
 
 import { SpotifyTrack } from "@/app/utils/interfaces";
 import { uploadTracksToDatabase } from "@/lib/database-handler";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useCallback } from "react";
+import { RootState } from "@/lib/store";
+import { applyCachedResults, setAlbumCacheEntry, setTrackCacheEntry } from "@/lib/features/spotifySlice";
 
 const useSpotify = () => {
   const dispatch = useDispatch();
+  const { trackCache = {}, albumCache = {} } = useSelector((s: RootState) => s.spotify)
+  const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
   const demoTracks: SpotifyTrack[] = [
     {
@@ -113,10 +117,18 @@ const useSpotify = () => {
 
   const fetchTracksFromSearch = useCallback(async (query: string): Promise<SpotifyTrack[]> => {
     try {
-      dispatch({ type: 'spotify/setLoading', payload: true });
       dispatch({ type: 'spotify/setError', payload: null });
-      dispatch({ type: 'spotify/clearTracks' });
       dispatch({ type: 'spotify/setCurrentQuery', payload: query });
+
+      // Serve from cache if fresh
+      const cached = trackCache[query]
+      if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+        dispatch(applyCachedResults({ type: 'track', query }))
+        dispatch({ type: 'spotify/setLoading', payload: false });
+        return cached.items
+      }
+
+      dispatch({ type: 'spotify/setLoading', payload: true });
       
       const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&offset=0&limit=12`);
       if (!res.ok) throw new Error('Failed to fetch tracks from search');
@@ -147,6 +159,9 @@ const useSpotify = () => {
         dispatch({ type: 'spotify/setHasMore', payload: data.hasMore });
         dispatch({ type: 'spotify/setTotal', payload: data.total });
         dispatch({ type: 'spotify/setLoading', payload: false });
+
+        // Cache the results for fast tab switches / navigation
+        dispatch(setTrackCacheEntry({ query, items: tracksWithPalettes, total: data.total, hasMore: data.hasMore, offset: tracksWithPalettes.length }))
         
         const bulkRes = await fetch('/api/data/collection/bulk', {
           method: 'POST',
@@ -161,6 +176,10 @@ const useSpotify = () => {
             if (json?.enriched && Array.isArray(json.enriched)) {
               // Merge enriched audio features back into store
               dispatch({ type: 'spotify/appendTracks', payload: json.enriched })
+              // Also update cache with enriched items
+              const enrichedMap = new Map<string, SpotifyTrack>(json.enriched.map((t: SpotifyTrack) => [t.id, t]))
+              const updated = tracksWithPalettes.map(t => enrichedMap.get(t.id) ? { ...t, ...enrichedMap.get(t.id)! } : t)
+              dispatch(setTrackCacheEntry({ query, items: updated, total: data.total, hasMore: data.hasMore, offset: updated.length }))
             }
           } catch {}
         }
@@ -225,6 +244,14 @@ const useSpotify = () => {
           ).then(tracksWithPalettes => {
             // Update tracks with palettes in background
             dispatch({ type: 'spotify/appendTracks', payload: tracksWithPalettes });
+
+            // Update cache: merge with existing cached list for this query
+            const existing = trackCache[query]?.items ?? []
+            const mergedMap = new Map<string, SpotifyTrack>()
+            for (const t of existing) mergedMap.set(t.id, t)
+            for (const t of tracksWithPalettes) mergedMap.set(t.id, { ...(mergedMap.get(t.id) || {} as any), ...t })
+            const merged = Array.from(mergedMap.values())
+            dispatch(setTrackCacheEntry({ query, items: merged, total: data.total, hasMore: data.hasMore, offset: merged.length }))
             
             // Store tracks in database
             fetch('/api/data/collection/bulk', {
@@ -240,6 +267,10 @@ const useSpotify = () => {
                   const json = await res.json()
                   if (json?.enriched && Array.isArray(json.enriched)) {
                     dispatch({ type: 'spotify/appendTracks', payload: json.enriched })
+                    // Also refresh cache with enriched items
+                    const enrichedMap = new Map<string, SpotifyTrack>(json.enriched.map((t: SpotifyTrack) => [t.id, t]))
+                    const updated = (trackCache[query]?.items ?? merged).map(t => enrichedMap.get(t.id) ? { ...t, ...enrichedMap.get(t.id)! } : t)
+                    dispatch(setTrackCacheEntry({ query, items: updated, total: data.total, hasMore: data.hasMore, offset: updated.length }))
                   }
                 } catch {}
               }
@@ -310,7 +341,13 @@ const useSpotify = () => {
     try {
       dispatch({ type: 'spotify/setLoading', payload: true });
       dispatch({ type: 'spotify/setError', payload: null });
-      dispatch({ type: 'spotify/clearAlbums' });
+      // Check cache first
+      const cached = albumCache[query]
+      if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+        dispatch(applyCachedResults({ type: 'album', query }))
+        dispatch({ type: 'spotify/setLoading', payload: false });
+        return cached.items
+      }
       dispatch({ type: 'spotify/setCurrentQuery', payload: query });
       
       const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&offset=0&limit=12&type=album`);
@@ -348,6 +385,9 @@ const useSpotify = () => {
         dispatch({ type: 'spotify/setHasMore', payload: data.hasMore });
         dispatch({ type: 'spotify/setTotal', payload: data.total });
         dispatch({ type: 'spotify/setLoading', payload: false });
+
+        // Cache the results
+        dispatch(setAlbumCacheEntry({ query, items: albumsWithPalettes, total: data.total, hasMore: data.hasMore, offset: albumsWithPalettes.length }))
 
         // Persist albums as well
         try {

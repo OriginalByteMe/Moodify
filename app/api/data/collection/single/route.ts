@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTrackFromDatabase, uploadTrackToDatabase } from '@/lib/database-handler';
+import { revalidateTag } from 'next/cache'
+import { trackTag } from '@/lib/get-track-cached'
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { track } = body;
     const data = await uploadTrackToDatabase(track);
+    try { if (track?.id) revalidateTag(trackTag(track.id)) } catch {}
     return NextResponse.json({ track: data }, { status: 200 });
   } catch (error) {
     console.error('Error uploading to database:', error);
