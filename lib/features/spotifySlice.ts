@@ -30,10 +30,25 @@ const spotifySlice = createSlice({
       state.offset = action.payload.length;
     },
     appendTracks: (state, action: PayloadAction<SpotifyTrack[]>) => {
-      const newTracks = action.payload.filter(
-        newTrack => !state.tracks.some(existingTrack => existingTrack.id === newTrack.id)
-      );
-      state.tracks = [...state.tracks, ...newTracks];
+      // Update existing tracks in place (by id), then append truly new ones.
+      // This allows us to append placeholder tracks first, and later replace
+      // them with versions that include fetched colour palettes without
+      // duplicating entries or losing order.
+      const updatesById = new Map(action.payload.map(t => [t.id, t]));
+
+      // Update existing items where an updated version exists
+      state.tracks = state.tracks.map(existing => {
+        const upd = updatesById.get(existing.id);
+        return upd ? { ...existing, ...upd } : existing;
+      });
+
+      // Append any new items that weren't already present
+      const existingIds = new Set(state.tracks.map(t => t.id));
+      const toAppend = action.payload.filter(t => !existingIds.has(t.id));
+      if (toAppend.length) {
+        state.tracks = [...state.tracks, ...toAppend];
+      }
+
       state.offset = state.tracks.length;
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
