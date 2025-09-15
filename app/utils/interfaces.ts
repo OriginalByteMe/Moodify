@@ -29,6 +29,24 @@ export interface SpotifyTrack {
   songUrl: string;
   previewUrl?: string | null;
   colourPalette: palette;
+  // Optional Spotify/audio analysis fields
+  popularity?: number;
+  duration_ms?: number;
+  explicit?: boolean;
+  danceability?: number;
+  energy?: number;
+  key?: number;
+  loudness?: number;
+  mode?: number;
+  speechiness?: number;
+  acousticness?: number;
+  instrumentalness?: number;
+  liveness?: number;
+  valence?: number;
+  tempo?: number;
+  time_signature?: number;
+  track_genre?: string;
+  audio_features_status?: 'unprocessed' | 'processing' | 'processed' | 'failed' | 'imported';
 }
 
 export interface SpotifyAlbum {
