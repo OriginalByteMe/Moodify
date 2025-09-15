@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { StoreProvider } from "./StoreProvider";
 import { ThemeProvider } from "@/app/components/ThemeProvider";
+import { PreviewPlayerProvider } from "@/app/components/PreviewPlayer";
 import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch";
 import { Inter } from 'next/font/google'
 
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: Props) {
       <body className={inter.className}>
         <ThemeProvider>
           <StoreProvider>
+            <PreviewPlayerProvider>
             <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
             <header className="fixed top-0 right-0 m-4 z-50 flex items-center space-x-4">
                 <Link
@@ -84,6 +86,7 @@ export default function RootLayout({ children }: Props) {
               </header>
               {children}
             </div>
+            </PreviewPlayerProvider>
           </StoreProvider>
         </ThemeProvider>
       </body>
