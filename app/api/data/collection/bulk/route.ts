@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
       console.warn('[BulkPatch] Skipped patch stage due to error', e);
     }
 
-    return NextResponse.json({ tracks: bulkResult }, { status: 200 });
+    // Return both the upload result and the enriched tracks so the client can merge audio features immediately
+    return NextResponse.json({ upload: bulkResult, enriched }, { status: 200 });
   } catch (error) {
     console.error('Error uploading to database:', error);
     return NextResponse.json(

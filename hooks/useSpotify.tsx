@@ -148,13 +148,22 @@ const useSpotify = () => {
         dispatch({ type: 'spotify/setTotal', payload: data.total });
         dispatch({ type: 'spotify/setLoading', payload: false });
         
-        await fetch('/api/data/collection/bulk', {
+        const bulkRes = await fetch('/api/data/collection/bulk', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ tracks: tracksWithPalettes }),
-        })
+        }).catch(console.error)
+        if (bulkRes && 'ok' in bulkRes && bulkRes.ok) {
+          try {
+            const json = await bulkRes.json()
+            if (json?.enriched && Array.isArray(json.enriched)) {
+              // Merge enriched audio features back into store
+              dispatch({ type: 'spotify/appendTracks', payload: json.enriched })
+            }
+          } catch {}
+        }
         // Also create albums for these tracks (no palette here)
         const albumsPayload = (data.items as any[]).map((t: any) => ({
           spotifyId: t.album?.id,
@@ -224,7 +233,18 @@ const useSpotify = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ tracks: tracksWithPalettes }),
-            }).catch(console.error);
+            })
+            .then(async (res) => {
+              if (res && res.ok) {
+                try {
+                  const json = await res.json()
+                  if (json?.enriched && Array.isArray(json.enriched)) {
+                    dispatch({ type: 'spotify/appendTracks', payload: json.enriched })
+                  }
+                } catch {}
+              }
+            })
+            .catch(console.error);
             // Also upsert albums for these tracks
             const albumsPayload = (data.items as any[]).map((t: any) => ({
               spotifyId: t.album?.id,
