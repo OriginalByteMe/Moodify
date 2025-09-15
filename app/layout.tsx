@@ -5,6 +5,7 @@ import { PreviewPlayerProvider } from "@/app/components/PreviewPlayer";
 import FullscreenPlayer from "@/app/components/FullscreenPlayer";
 import Header from "@/app/components/Header";
 import { Inter } from 'next/font/google'
+import { Analytics } from "@vercel/analytics/next"
 
 import "./styles/globals.css";
 
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: Props) {
             </PreviewPlayerProvider>
           </StoreProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
