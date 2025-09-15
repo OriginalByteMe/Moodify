@@ -2,7 +2,7 @@
 
 import React from "react"
 import Image from "next/image"
-import { Pause, Play, Volume2, VolumeX, X } from "lucide-react"
+import { Pause, Play, Repeat, Volume2, VolumeX, X } from "lucide-react"
 import { SpotifyTrack } from "@/app/utils/interfaces"
 import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
 import { useTheme } from "@/app/components/ThemeProvider"
@@ -29,8 +29,8 @@ export default function PlayerControls({
   autoPlayOnMount = false
 }: PlayerControlsProps) {
   const {
-    isPlaying, play, pause, resume, currentTrack, progress, volume, muted,
-    toggleMute, setVolume, timeLeftFormatted
+    isPlaying, play, pause, resume, currentTrack, progress, volume, muted, looping,
+    toggleMute, toggleLoop, setVolume, timeLeftFormatted
   } = usePreviewPlayer()
   const { theme } = useTheme()
 
@@ -86,6 +86,20 @@ export default function PlayerControls({
           >
             {isCurrentTrack && isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
+
+          {hasPreview && (
+            <button
+              aria-label={looping ? "Disable loop" : "Enable loop"}
+              onClick={toggleLoop}
+              className={`p-1.5 rounded-full transition-colors text-gray-900 dark:text-gray-100 ${
+                looping
+                  ? 'bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50'
+                  : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Repeat className="w-4 h-4" />
+            </button>
+          )}
 
           {showVolumeControls && hasPreview && (
             <div className="hidden sm:flex items-center gap-1">
@@ -156,17 +170,35 @@ export default function PlayerControls({
 
       <div className="flex items-center gap-2">
         {hasPreview ? (
-          <button
-            onClick={handlePlayPause}
-            className={`p-3 rounded-full transition-colors ${
-              theme === 'dark'
-                ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-            }`}
-            aria-label={isCurrentTrack && isPlaying ? 'Pause' : 'Play'}
-          >
-            {isCurrentTrack && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-          </button>
+          <>
+            <button
+              onClick={handlePlayPause}
+              className={`p-3 rounded-full transition-colors ${
+                theme === 'dark'
+                  ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+              }`}
+              aria-label={isCurrentTrack && isPlaying ? 'Pause' : 'Play'}
+            >
+              {isCurrentTrack && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+            </button>
+
+            <button
+              onClick={toggleLoop}
+              className={`p-3 rounded-full transition-colors ${
+                looping
+                  ? theme === 'dark'
+                    ? 'bg-green-900/30 hover:bg-green-900/50 text-white'
+                    : 'bg-green-100 hover:bg-green-200 text-gray-900'
+                  : theme === 'dark'
+                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+              }`}
+              aria-label={looping ? 'Disable loop' : 'Enable loop'}
+            >
+              <Repeat className="w-5 h-5" />
+            </button>
+          </>
         ) : (
           <span className={`text-xs ${
             theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
