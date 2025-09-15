@@ -8,6 +8,7 @@ const initialState: ISpotifyState = {
   isLoadingMore: false,
   error: null,
   selectedTrack: null,
+  isFullscreenMode: false,
   hasMore: false,
   total: 0,
   currentQuery: '',
@@ -18,7 +19,9 @@ const initialState: ISpotifyState = {
   albumTracksModal: {
     album: null,
     isOpen: false
-  }
+  },
+  trackCache: {},
+  albumCache: {},
 };
 
 const spotifySlice = createSlice({
@@ -62,6 +65,12 @@ const spotifySlice = createSlice({
     },
     setSelectedTrack: (state, action: PayloadAction<SpotifyTrack | null>) => {
       state.selectedTrack = action.payload;
+    },
+    enterFullscreen: (state) => {
+      state.isFullscreenMode = true;
+    },
+    exitFullscreen: (state) => {
+      state.isFullscreenMode = false;
     },
     setHasMore: (state, action: PayloadAction<boolean>) => {
       state.hasMore = action.payload;
@@ -109,7 +118,34 @@ const spotifySlice = createSlice({
     clearAlbums: (state) => {
       state.albums = [];
     },
-    openAlbumTracksModal: (state, action: PayloadAction<SpotifyAlbum>) => {
+    // Cache management
+    setTrackCacheEntry: (state, action: PayloadAction<{ query: string; items: SpotifyTrack[]; total: number; hasMore: boolean; offset: number; ts?: number }>) => {
+      const { query, items, total, hasMore, offset, ts } = action.payload
+      if (!state.trackCache) state.trackCache = {}
+      state.trackCache[query] = { items, total, hasMore, offset, ts: ts ?? Date.now() }
+    },
+    setAlbumCacheEntry: (state, action: PayloadAction<{ query: string; items: SpotifyAlbum[]; total: number; hasMore: boolean; offset: number; ts?: number }>) => {
+      const { query, items, total, hasMore, offset, ts } = action.payload
+      if (!state.albumCache) state.albumCache = {}
+      state.albumCache[query] = { items, total, hasMore, offset, ts: ts ?? Date.now() }
+    },
+    applyCachedResults: (state, action: PayloadAction<{ type: 'track' | 'album'; query: string }>) => {
+      const { type, query } = action.payload
+      if (type === 'track' && state.trackCache && state.trackCache[query]) {
+        const c = state.trackCache[query]
+        state.tracks = c.items
+        state.total = c.total
+        state.hasMore = c.hasMore
+        state.offset = c.offset
+      } else if (type === 'album' && state.albumCache && state.albumCache[query]) {
+        const c = state.albumCache[query]
+        state.albums = c.items
+        state.total = c.total
+        state.hasMore = c.hasMore
+        state.offset = c.offset
+      }
+    },
+  openAlbumTracksModal: (state, action: PayloadAction<SpotifyAlbum>) => {
       state.albumTracksModal.album = action.payload;
       state.albumTracksModal.isOpen = true;
     },
@@ -127,6 +163,8 @@ export const {
   setLoadingMore, 
   setError, 
   setSelectedTrack, 
+  enterFullscreen,
+  exitFullscreen,
   setHasMore, 
   setTotal, 
   setCurrentQuery, 
@@ -138,6 +176,9 @@ export const {
   appendAlbums,
   setSearchType,
   clearAlbums,
+  setTrackCacheEntry,
+  setAlbumCacheEntry,
+  applyCachedResults,
   openAlbumTracksModal,
   closeAlbumTracksModal
 } = spotifySlice.actions;

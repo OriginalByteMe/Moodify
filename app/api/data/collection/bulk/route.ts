@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTracksFromDatabase, uploadTracksToDatabase, patchTrack } from '@/lib/database-handler';
+import { revalidateTag } from 'next/cache'
+import { trackTag } from '@/lib/get-track-cached'
 import type { SpotifyTrack } from '@/app/utils/interfaces';
 
 const ANALYZER_URL = process.env.AUDIO_ANALYZER_URL || 'https://originalbyteme--ai-audio-features-web-app.modal.run';
@@ -87,6 +89,8 @@ export async function POST(request: NextRequest) {
             const payload: any = {};
             // Send palette if present
             if (Array.isArray(original.colourPalette)) payload.colourPalette = original.colourPalette;
+            // Send preview URL if present
+            if (original.previewUrl !== undefined) payload.previewUrl = original.previewUrl;
             // Send audio features if present
             const keys: (keyof SpotifyTrack)[] = [
               'danceability','energy','key','loudness','mode','speechiness','acousticness','instrumentalness','liveness','valence','tempo','time_signature','duration_ms','audio_features_status'
@@ -98,6 +102,8 @@ export async function POST(request: NextRequest) {
             if (Object.keys(payload).length > 0) {
               await patchTrack(s.spotifyId, payload).catch((e) => console.warn('[PatchTrack] Failed', s.spotifyId, e));
             }
+            // Revalidate cache tag for this track
+            try { revalidateTag(trackTag(s.spotifyId)) } catch {}
           })
         );
       }

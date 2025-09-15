@@ -34,15 +34,23 @@ Moodify is a Next.js application that extracts color palettes from Spotify album
 
 **API Routes Structure**
 - `/api/spotify/search` - Proxies Spotify search requests
+- `/api/spotify/album/[id]/tracks` - Fetches album tracks from Spotify
 - `/api/data/collection/bulk` - Handles bulk track data operations
 - `/api/data/collection/single` - Handles single track operations
+- `/api/data/album/bulk` - Handles bulk album data operations
 - `/api/data/palette-picker` - Manages color palette operations
+- `/api/track/[id]` - Individual track data endpoint
+- `/api/cache/revalidate` - Cache revalidation endpoint
 
 **Component Architecture**
 - Theme system with dark/light mode support
 - Reusable UI components in `app/components/ui/`
 - Search functionality with debounced input
-- Dynamic background rendering based on color palettes
+- Dynamic 3D background rendering using ShaderGradient (`app/components/ui/lavaLampBackground.tsx`)
+- Header component with conditional visibility (`app/components/Header.tsx`)
+- Fullscreen player with track visualization (`app/components/FullscreenPlayer.tsx`)
+- Preview player with audio controls (`app/components/PreviewPlayer.tsx`)
+- Play and Share pages with dynamic routing (`/play/[id]`, `/share/[id]`)
 
 ### Environment Variables Required
 ```
@@ -63,3 +71,16 @@ SPOTIFY_REFRESH_TOKEN - For authenticated requests
 - Service returns RGB color arrays (format: `[[r,g,b], [r,g,b], ...]`)
 - Default emerald palette used as fallback on errors
 - Palettes are stored with track metadata for future retrieval
+- 3D backgrounds dynamically adapt to extracted color palettes and track tempo
+
+### Performance Optimizations
+- Next.js caching with `unstable_cache` for track data (`lib/get-track-cached.ts`)
+- Cache revalidation system with tag-based invalidation
+- Spotify preview URL enrichment using `spotify-preview-finder` library
+- Track data normalization for consistent API responses
+
+### 3D Visualization Features
+- WebGL-based shader gradients using `@shadergradient/react`
+- Dynamic background types (plane, waterPlane) based on track ID
+- Tempo-driven animation speed mapping (60-180 BPM → 0.2-1.0 speed)
+- Color synchronization between track palettes and 3D rendering

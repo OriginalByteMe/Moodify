@@ -1,11 +1,14 @@
 import Image from 'next/image';
-import { Play, Wand2, Music2, Ban } from 'lucide-react';
+import { Play, Wand2, Music2, Ban, Maximize2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { tracksApi } from '@/lib/services/tracksApi';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
-import useTheme from '@/hooks/useTheme';
+import useColorPalette from '@/hooks/useColorPalette';
 import { RootState } from '@/lib/store';
 import { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import type { AppDispatch } from '@/lib/store';
 import { openModal } from '@/lib/features/spotifySlice';
 import { usePreviewPlayer } from '@/app/components/PreviewPlayer';
 
@@ -69,10 +72,11 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const [isJiggling, setIsJiggling] = useState(false)
 	const [showPalette, setShowPalette] = useState(false)
 	const { selectedTrack } = useSelector((state: RootState) => state.spotify)
-	const dispatch = useDispatch();
-	const { applyPalette, resetPalette } = useTheme();
+	const dispatch = useDispatch<AppDispatch>();
+	const { applyPalette, resetPalette } = useColorPalette();
 	const currentTrack = track
 	const { play, stop } = usePreviewPlayer()
+  const router = useRouter()
   const hasPreview = Boolean(track.previewUrl)
 
 	const handleMagicWandClick = useCallback(() => {
@@ -95,6 +99,18 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 		// Reset jiggling after animation completes
 		setTimeout(() => setIsJiggling(false), 820)
 	}, [currentTrack, selectedTrack, dispatch, resetPalette, applyPalette, play, stop]);
+
+	const handleEnterImmersive = useCallback(() => {
+		if (!currentTrack) return;
+		// Prime Redux cache and set selectedTrack for instant render
+		try {
+			dispatch({ type: 'spotify/setSelectedTrack', payload: currentTrack });
+			// Prefetch via RTK Query (no-op if already cached)
+			dispatch(tracksApi.util.prefetch('getTrackById', currentTrack.id, { force: false }));
+		} catch {}
+		// Navigate to dedicated play page for smoother transition
+		router.push(`/play/${encodeURIComponent(currentTrack.id)}`)
+	}, [currentTrack, router, dispatch]);
 
 	const handleInfoClick = useCallback(() => {
 		if (!currentTrack) return;
@@ -134,6 +150,19 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 							</>
 						)}
 					</span>
+				</div>
+
+				{/* Immersive view icon (always visible on the card) */}
+				<div className="absolute top-2 right-2 z-10">
+					<Button
+						variant='secondary'
+						size='icon'
+						className='rounded-full h-8 w-8 bg-white/80 text-gray-900 hover:bg-white shadow'
+						onClick={(e) => { e.stopPropagation(); handleEnterImmersive(); }}
+						title='Open immersive view'
+					>
+						<Maximize2 className='h-4 w-4' />
+					</Button>
 				</div>
 
 				{/* Hover overlay with action */}
