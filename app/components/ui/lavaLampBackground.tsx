@@ -23,24 +23,30 @@ function bpmToSpeed(bpm?: number): number {
   return 0.2 + ((clamped - 60) / 120) * 0.8
 }
 
-export default function LavaLampBackground() {
+type Props = {
+  palette?: number[][]
+  tempo?: number
+  trackId?: string
+}
+
+export default function LavaLampBackground({ palette, tempo, trackId }: Props = {}) {
   const selectedTrack = useSelector((s: RootState) => s.spotify.selectedTrack)
 
-  const palette = selectedTrack?.colourPalette
-  const color1 = rgbToHex(palette?.[0] ?? [255, 255, 255])
-  const color2 = rgbToHex(palette?.[1] ?? [0, 128, 255])
-  const color3 = rgbToHex(palette?.[2] ?? [0, 0, 0])
+  const effectivePalette = palette ?? selectedTrack?.colourPalette
+  const color1 = rgbToHex(effectivePalette?.[0] ?? [255, 255, 255])
+  const color2 = rgbToHex(effectivePalette?.[1] ?? [0, 128, 255])
+  const color3 = rgbToHex(effectivePalette?.[2] ?? [0, 0, 0])
 
-  const speed = useMemo(() => bpmToSpeed(selectedTrack?.tempo), [selectedTrack?.tempo])
+  const speed = useMemo(() => bpmToSpeed(tempo ?? selectedTrack?.tempo), [tempo, selectedTrack?.tempo])
 
   const type = useMemo<'plane' | 'sphere' | 'waterPlane'>(() => {
-    const id = selectedTrack?.id ?? 'default'
+    const id = (trackId ?? selectedTrack?.id) ?? 'default'
     let hash = 0
     for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0
     const types: Array<'plane' | 'waterPlane'> = ['plane', 'waterPlane']
     const idx = Math.abs(hash) % types.length
     return types[idx]
-  }, [selectedTrack?.id])
+  }, [trackId, selectedTrack?.id])
 
   return (
     <div className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'>

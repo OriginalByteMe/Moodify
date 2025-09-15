@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Play, Wand2, Music2, Ban } from 'lucide-react';
+import { Play, Wand2, Music2, Ban, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
 import useTheme from '@/hooks/useTheme';
@@ -96,6 +96,20 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 		setTimeout(() => setIsJiggling(false), 820)
 	}, [currentTrack, selectedTrack, dispatch, resetPalette, applyPalette, play, stop]);
 
+	const handleEnterImmersive = useCallback(() => {
+		if (!currentTrack) return;
+		if (!selectedTrack || selectedTrack.id !== currentTrack.id) {
+			dispatch({ type: 'spotify/setSelectedTrack', payload: currentTrack });
+			if (currentTrack.colourPalette) {
+				applyPalette(currentTrack.colourPalette);
+			}
+			if (currentTrack.previewUrl) {
+				play(currentTrack);
+			}
+		}
+		dispatch({ type: 'spotify/enterFullscreen' });
+	}, [currentTrack, selectedTrack, dispatch, applyPalette, play]);
+
 	const handleInfoClick = useCallback(() => {
 		if (!currentTrack) return;
 		dispatch(openModal(currentTrack));
@@ -134,6 +148,19 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 							</>
 						)}
 					</span>
+				</div>
+
+				{/* Immersive view icon (always visible on the card) */}
+				<div className="absolute top-2 right-2 z-10">
+					<Button
+						variant='secondary'
+						size='icon'
+						className='rounded-full h-8 w-8 bg-white/80 text-gray-900 hover:bg-white shadow'
+						onClick={(e) => { e.stopPropagation(); handleEnterImmersive(); }}
+						title='Open immersive view'
+					>
+						<Maximize2 className='h-4 w-4' />
+					</Button>
 				</div>
 
 				{/* Hover overlay with action */}

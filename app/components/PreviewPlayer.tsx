@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import Image from "next/image"
 import { Pause, Play, Volume2, VolumeX, X } from "lucide-react"
 import { SpotifyTrack } from "@/app/utils/interfaces"
+import { useSelector } from "react-redux"
+import { RootState } from "@/lib/store"
 
 type Ctx = {
   play: (track: SpotifyTrack) => void
@@ -161,10 +163,13 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
   const tlMin = Math.floor(timeLeft / 60)
   const tlSec = String(timeLeft % 60).padStart(2, "0")
 
+  const isFullscreen = useSelector((s: RootState) => s.spotify.isFullscreenMode)
+
   return (
     <PreviewPlayerContext.Provider value={value}>
       {children}
-      {currentTrack && (
+      {/* Hide floating mini-player in immersive mode */}
+      {currentTrack && !isFullscreen && (
         <div className="fixed right-4 bottom-4 z-50">
           <div className="group shadow-xl rounded-full bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200/60 dark:border-gray-800/60 px-3 py-2 flex items-center gap-3 hover:shadow-2xl transition-shadow text-gray-900 dark:text-gray-100">
             <div className="relative w-10 h-10 overflow-hidden rounded-full border border-gray-200 dark:border-gray-700">

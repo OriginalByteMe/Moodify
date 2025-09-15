@@ -6,6 +6,7 @@ export interface ISpotifyState {
   isLoadingMore: boolean;
   error: string | null;
   selectedTrack: SpotifyTrack | null;
+  isFullscreenMode: boolean;
   hasMore: boolean;
   total: number;
   currentQuery: string;

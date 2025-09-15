@@ -8,6 +8,7 @@ const initialState: ISpotifyState = {
   isLoadingMore: false,
   error: null,
   selectedTrack: null,
+  isFullscreenMode: false,
   hasMore: false,
   total: 0,
   currentQuery: '',
@@ -62,6 +63,12 @@ const spotifySlice = createSlice({
     },
     setSelectedTrack: (state, action: PayloadAction<SpotifyTrack | null>) => {
       state.selectedTrack = action.payload;
+    },
+    enterFullscreen: (state) => {
+      state.isFullscreenMode = true;
+    },
+    exitFullscreen: (state) => {
+      state.isFullscreenMode = false;
     },
     setHasMore: (state, action: PayloadAction<boolean>) => {
       state.hasMore = action.payload;
@@ -127,6 +134,8 @@ export const {
   setLoadingMore, 
   setError, 
   setSelectedTrack, 
+  enterFullscreen,
+  exitFullscreen,
   setHasMore, 
   setTotal, 
   setCurrentQuery, 
