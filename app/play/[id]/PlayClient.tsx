@@ -68,6 +68,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
   const [leaving, setLeaving] = useState(false)
   const [entered, setEntered] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState('')
   const [showStats, setShowStats] = useState(false)
   const { theme } = useTheme()
 
@@ -101,8 +102,12 @@ export default function PlayClient({ trackId }: { trackId: string }) {
     try {
       const url = `${window.location.origin}/share/${encodeURIComponent(shown?.id || trackId)}`
       await navigator.clipboard.writeText(url)
+      setCopiedUrl(url)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => {
+        setCopied(false)
+        setCopiedUrl('')
+      }, 3000)
     } catch {}
   }
 
@@ -211,8 +216,15 @@ export default function PlayClient({ trackId }: { trackId: string }) {
         />
       </div>
 
-      {copied && (
-        <div className="absolute top-20 right-6 z-20 px-3 py-2 rounded bg-black/70 text-white text-sm">Link copied!</div>
+      {copied && copiedUrl && (
+        <div className="absolute top-20 right-6 z-20 max-w-xs sm:max-w-sm">
+          <div className="px-4 py-3 rounded-lg bg-black/80 backdrop-blur text-white text-sm shadow-lg border border-white/10">
+            <div className="font-medium mb-1">Link copied!</div>
+            <div className="text-xs text-white/70 font-mono break-all">
+              {copiedUrl.length > 40 ? `${copiedUrl.substring(0, 40)}...` : copiedUrl}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
