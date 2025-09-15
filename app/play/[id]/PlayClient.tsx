@@ -12,6 +12,8 @@ import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/feature
 import PlayerControls from "@/app/components/PlayerControls"
 import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch"
 import { useTheme } from "@/app/components/ThemeProvider"
+import NerdStats from "@/app/components/NerdStats"
+import { Button } from "@/components/ui/button"
 
 function normalizeTrack(t: any) {
   if (!t) return null
@@ -66,6 +68,8 @@ export default function PlayClient({ trackId }: { trackId: string }) {
   const [leaving, setLeaving] = useState(false)
   const [entered, setEntered] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState('')
+  const [showStats, setShowStats] = useState(false)
   const { theme } = useTheme()
 
   useEffect(() => {
@@ -98,8 +102,12 @@ export default function PlayClient({ trackId }: { trackId: string }) {
     try {
       const url = `${window.location.origin}/share/${encodeURIComponent(shown?.id || trackId)}`
       await navigator.clipboard.writeText(url)
+      setCopiedUrl(url)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => {
+        setCopied(false)
+        setCopiedUrl('')
+      }, 3000)
     } catch {}
   }
 
@@ -159,19 +167,44 @@ export default function PlayClient({ trackId }: { trackId: string }) {
           theme === 'dark' ? 'text-white/60' : 'text-gray-600'
         }`}>{shown?.album || ''}</p>
 
-        {/* Palette */}
-        <div className="mt-8 grid grid-cols-4 gap-3 max-w-2xl mx-auto">
-          {(shown?.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div className={`w-14 h-14 rounded-full shadow-lg border-2 ${
-                theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
-              }`} style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
-              <span className={`text-[10px] font-mono ${
-                theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-              }`}>{c[0]},{c[1]},{c[2]}</span>
-            </div>
-          ))}
+        {/* Palette with backdrop */}
+        <div className="mt-8 max-w-2xl mx-auto rounded-xl p-4 bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
+          <div className="grid grid-cols-4 gap-3">
+            {(shown?.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <div className={`w-14 h-14 rounded-full shadow-lg border-2 ${
+                  theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
+                }`} style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
+                <span className={`text-[10px] font-mono ${
+                  theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                }`}>{c[0]},{c[1]},{c[2]}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* Nerd stats toggle */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowStats(s => !s)}
+            className={`px-4 py-2 rounded-full backdrop-blur font-medium transition-colors ${
+              theme === 'dark'
+                ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600/50'
+                : 'bg-white/90 hover:bg-white text-gray-900'
+            }`}
+            aria-expanded={showStats}
+            aria-controls="nerd-stats"
+          >
+            {showStats ? 'Hide nerd stats 🥹' : 'Show nerd stats 🤓'}
+          </button>
+        </div>
+
+        {/* Nerd stats content */}
+        {showStats && shown && (
+          <div id="nerd-stats" className="max-w-3xl mx-auto">
+            <NerdStats track={shown} />
+          </div>
+        )}
       </div>
 
       {/* Big player pill bottom center */}
@@ -183,8 +216,15 @@ export default function PlayClient({ trackId }: { trackId: string }) {
         />
       </div>
 
-      {copied && (
-        <div className="absolute top-20 right-6 z-20 px-3 py-2 rounded bg-black/70 text-white text-sm">Link copied!</div>
+      {copied && copiedUrl && (
+        <div className="absolute top-20 right-6 z-20 max-w-xs sm:max-w-sm">
+          <div className="px-4 py-3 rounded-lg bg-black/80 backdrop-blur text-white text-sm shadow-lg border border-white/10">
+            <div className="font-medium mb-1">Link copied!</div>
+            <div className="text-xs text-white/70 font-mono break-all">
+              {copiedUrl.length > 40 ? `${copiedUrl.substring(0, 40)}...` : copiedUrl}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
