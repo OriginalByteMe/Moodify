@@ -13,6 +13,7 @@ type Ctx = {
   stop: () => void
   setVolume: (v: number) => void
   toggleMute: () => void
+  toggleLoop: () => void
   isPlaying: boolean
   currentTrack: SpotifyTrack | null
   duration: number
@@ -20,6 +21,7 @@ type Ctx = {
   progress: number
   volume: number
   muted: boolean
+  looping: boolean
   timeLeft: number
   timeLeftFormatted: string
 }
@@ -42,6 +44,7 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, _setVolume] = useState(0.6)
   const [muted, setMuted] = useState(false)
+  const [looping, setLooping] = useState(false)
 
   const attachListeners = () => {
     if (!audioRef.current || listenersAttachedRef.current) return
@@ -102,6 +105,11 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
     if (audioRef.current) audioRef.current.volume = muted ? 0 : volume
   }, [volume, muted])
 
+  // React to loop changes
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.loop = looping
+  }, [looping])
+
   const play = (track: SpotifyTrack) => {
     if (!track?.previewUrl) return
     ensureAudio()
@@ -113,6 +121,7 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
         audioRef.current.src = track.previewUrl
         audioRef.current.currentTime = 0
         audioRef.current.volume = muted ? 0 : volume
+        audioRef.current.loop = looping
         void audioRef.current.play()
       } catch (e) {
         console.warn("[PreviewPlayer] play failed", e)
@@ -160,6 +169,12 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
     if (audioRef.current) audioRef.current.volume = next ? 0 : volume
   }
 
+  const toggleLoop = () => {
+    const next = !looping
+    setLooping(next)
+    if (audioRef.current) audioRef.current.loop = next
+  }
+
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0
   const timeLeft = Math.max(0, Math.round((duration - currentTime) || 0))
   const tlMin = Math.floor(timeLeft / 60)
@@ -167,11 +182,11 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
 
   const value = useMemo(
     () => ({
-      play, pause, resume, stop, setVolume, toggleMute,
-      isPlaying, currentTrack, duration, currentTime, progress, volume, muted,
+      play, pause, resume, stop, setVolume, toggleMute, toggleLoop,
+      isPlaying, currentTrack, duration, currentTime, progress, volume, muted, looping,
       timeLeft, timeLeftFormatted: `${tlMin}:${tlSec}`
     }),
-    [isPlaying, currentTrack, duration, currentTime, progress, volume, muted, timeLeft, tlMin, tlSec]
+    [isPlaying, currentTrack, duration, currentTime, progress, volume, muted, looping, timeLeft, tlMin, tlSec]
   )
 
   const isFullscreen = useSelector((s: RootState) => s.spotify.isFullscreenMode)
