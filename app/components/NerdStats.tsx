@@ -1,20 +1,8 @@
 "use client"
 
 import React from "react"
-import {
-  Activity,
-  Smile,
-  Mic2,
-  Guitar,
-  Volume2,
-  AudioWaveform,
-  Gauge,
-  KeyboardMusic,
-  SquareActivity,
-  Music,
-  BarChart3
-} from "lucide-react"
 import { SpotifyTrack } from "@/app/utils/interfaces"
+import AnimatedStatIcon from "@/app/components/AnimatedStatIcon"
 
 type Props = {
   track: SpotifyTrack
@@ -29,17 +17,17 @@ const pct = (v: any) => {
 }
 
 export default function NerdStats({ track }: Props) {
-  const items: Array<{ key: keyof SpotifyTrack; label: string; icon: React.ReactNode; tip: string; format?: (v: any) => string; animate?: string }>
+  const items: Array<{ key: keyof SpotifyTrack; label: string; icon: React.ReactNode; tip: string; format?: (v: any) => string }>
     = [
-      { key: 'danceability', label: 'Danceability', icon: <BarChart3 className="h-4 w-4" />, tip: 'How suitable the track is for dancing (0–1)', animate: 'animate-bounce' },
-      { key: 'energy', label: 'Energy', icon: <Gauge className="h-4 w-4" />, tip: 'Intensity and activity (0–1)', animate: 'animate-pulse' },
-      { key: 'valence', label: 'Valence', icon: <Smile className="h-4 w-4" />, tip: 'Musical positiveness (0–1)', animate: 'animate-pulse' },
-      { key: 'acousticness', label: 'Acoustic', icon: <KeyboardMusic className="h-4 w-4" />, tip: 'Likelihood track is acoustic (0–1)', animate: 'animate-pulse' },
-      { key: 'instrumentalness', label: 'Instrumental', icon: <Guitar className="h-4 w-4" />, tip: 'Likelihood of no vocals (0–1)', animate: 'animate-pulse' },
-      { key: 'speechiness', label: 'Speechiness', icon: <Mic2 className="h-4 w-4" />, tip: 'Presence of spoken words (0–1)', animate: 'animate-pulse' },
-      { key: 'liveness', label: 'Liveness', icon: <SquareActivity className="h-4 w-4" />, tip: 'Presence of an audience (0–1)', animate: 'animate-pulse' },
-      { key: 'loudness', label: 'Loudness', icon: <Volume2 className="h-4 w-4" />, tip: 'Overall track loudness (dB)', format: (v) => `${Number(v).toFixed(1)} dB`, animate: 'animate-pulse' },
-      { key: 'tempo', label: 'Tempo', icon: <AudioWaveform className="h-4 w-4" />, tip: 'Estimated beats per minute', format: (v) => `${Math.round(Number(v))} BPM`, animate: 'animate-pulse' },
+      { key: 'danceability', label: 'Danceability', icon: <AnimatedStatIcon kind="danceability" value={(track as any)?.danceability as any} className="text-gray-700 dark:text-gray-300" />, tip: 'How suitable the track is for dancing (0–1)' },
+      { key: 'energy', label: 'Energy', icon: <AnimatedStatIcon kind="energy" value={(track as any)?.energy as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Intensity and activity (0–1)' },
+      { key: 'valence', label: 'Valence', icon: <AnimatedStatIcon kind="valence" value={(track as any)?.valence as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Musical positiveness (0–1)' },
+      { key: 'acousticness', label: 'Acoustic', icon: <AnimatedStatIcon kind="acousticness" value={(track as any)?.acousticness as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Likelihood track is acoustic (0–1)' },
+      { key: 'instrumentalness', label: 'Instrumental', icon: <AnimatedStatIcon kind="instrumentalness" value={(track as any)?.instrumentalness as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Likelihood of no vocals (0–1)' },
+      { key: 'speechiness', label: 'Speechiness', icon: <AnimatedStatIcon kind="speechiness" value={(track as any)?.speechiness as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Presence of spoken words (0–1)' },
+      { key: 'liveness', label: 'Liveness', icon: <AnimatedStatIcon kind="liveness" value={(track as any)?.liveness as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Presence of an audience (0–1)' },
+      { key: 'loudness', label: 'Loudness', icon: <AnimatedStatIcon kind="loudness" value={(track as any)?.loudness as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Overall track loudness (dB)', format: (v) => `${Number(v).toFixed(1)} dB` },
+      { key: 'tempo', label: 'Tempo', icon: <AnimatedStatIcon kind="tempo" value={(track as any)?.tempo as any} className="text-gray-700 dark:text-gray-300" />, tip: 'Estimated beats per minute', format: (v) => `${Math.round(Number(v))} BPM` },
     ]
 
   const elements: React.ReactNode[] = []
@@ -49,7 +37,7 @@ export default function NerdStats({ track }: Props) {
     if (value === undefined || value === null) continue
     elements.push(
       <div key={String(it.key)} className="flex items-center gap-2 p-3 rounded-lg bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
-        <div className={`text-gray-700 dark:text-gray-300 ${it.animate || ''}`} title={it.tip}>
+        <div title={it.tip}>
           {it.icon}
         </div>
         <div className="flex-1">
@@ -67,7 +55,7 @@ export default function NerdStats({ track }: Props) {
     const modeName = track.mode === 1 ? 'Major' : track.mode === 0 ? 'Minor' : undefined
     elements.push(
       <div key="key" className="flex items-center gap-2 p-3 rounded-lg bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
-        <div className="text-gray-700 dark:text-gray-300" title="Musical key and mode"><KeyboardMusic className="h-4 w-4" /></div>
+        <div className="text-gray-700 dark:text-gray-300" title="Musical key and mode"><AnimatedStatIcon kind="key" className="text-gray-700 dark:text-gray-300" /></div>
         <div className="flex-1">
           <div className="text-xs text-gray-600 dark:text-gray-400">Key{typeof track?.mode === 'number' ? ' / Mode' : ''}</div>
           <div className="text-sm font-medium text-gray-900 dark:text-white">{keyName}{modeName ? ` • ${modeName}` : ''}</div>
@@ -79,7 +67,7 @@ export default function NerdStats({ track }: Props) {
   if (typeof track?.time_signature === 'number') {
     elements.push(
       <div key="signature" className="flex items-center gap-2 p-3 rounded-lg bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
-        <div className="text-gray-700 dark:text-gray-300" title="Time signature"><Music className="h-4 w-4" /></div>
+        <div className="text-gray-700 dark:text-gray-300" title="Time signature"><AnimatedStatIcon kind="time_signature" className="text-gray-700 dark:text-gray-300" /></div>
         <div className="flex-1">
           <div className="text-xs text-gray-600 dark:text-gray-400">Time Signature</div>
           <div className="text-sm font-medium text-gray-900 dark:text-white">{track.time_signature}</div>
@@ -93,7 +81,7 @@ export default function NerdStats({ track }: Props) {
   if (typeof track?.popularity === 'number') {
     elements.push(
       <div key="popularity" className="flex items-center gap-2 p-3 rounded-lg bg-white/60 dark:bg-gray-900/50 backdrop-blur ring-1 ring-black/5 dark:ring-white/10">
-        <div className="text-gray-700 dark:text-gray-300" title="Spotify popularity (0–100)"><BarChart3 className="h-4 w-4" /></div>
+        <div className="text-gray-700 dark:text-gray-300" title="Spotify popularity (0–100)"><AnimatedStatIcon kind="popularity" className="text-gray-700 dark:text-gray-300" /></div>
         <div className="flex-1">
           <div className="text-xs text-gray-600 dark:text-gray-400">Popularity</div>
           <div className="text-sm font-medium text-gray-900 dark:text-white">{Math.round(track.popularity)}</div>
