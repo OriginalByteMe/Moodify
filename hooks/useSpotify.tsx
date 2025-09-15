@@ -131,6 +131,7 @@ const useSpotify = () => {
           artist: track.artists.map((artist: any) => artist.name).join(', '),
           artists: track.artists.map((artist: any) => artist.name),
           album: track.album.name,
+          albumId: track.album?.id,
           albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
           songUrl: track.external_urls?.spotify || '',
           previewUrl: track.previewUrl ?? null,
@@ -154,6 +155,20 @@ const useSpotify = () => {
           },
           body: JSON.stringify({ tracks: tracksWithPalettes }),
         })
+        // Also create albums for these tracks (no palette here)
+        const albumsPayload = (data.items as any[]).map((t: any) => ({
+          spotifyId: t.album?.id,
+          album: t.album?.name,
+          artists: Array.isArray(t.artists) ? t.artists.map((a: any) => a?.name).filter(Boolean).join(', ') : '',
+          albumCover: t.album?.images?.[0]?.url
+        })).filter((a: any) => a.spotifyId && a.album && a.artists)
+        if (albumsPayload.length > 0) {
+          await fetch('/api/data/album/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ albums: albumsPayload })
+          }).catch(console.error)
+        }
         return tracksWithPalettes;
       }
       
@@ -187,6 +202,7 @@ const useSpotify = () => {
           artist: track.artists.map((artist: any) => artist.name).join(', '),
           artists: track.artists.map((artist: any) => artist.name),
           album: track.album.name,
+          albumId: track.album?.id,
           albumCover: track.album.images[0]?.url || '/placeholder.svg?height=300&width=300',
           songUrl: track.external_urls?.spotify || '',
           previewUrl: track.previewUrl ?? null,
@@ -201,7 +217,7 @@ const useSpotify = () => {
             // Update tracks with palettes in background
             dispatch({ type: 'spotify/appendTracks', payload: tracksWithPalettes });
             
-            // Store in database
+            // Store tracks in database
             fetch('/api/data/collection/bulk', {
               method: 'POST',
               headers: {
@@ -209,6 +225,20 @@ const useSpotify = () => {
               },
               body: JSON.stringify({ tracks: tracksWithPalettes }),
             }).catch(console.error);
+            // Also upsert albums for these tracks
+            const albumsPayload = (data.items as any[]).map((t: any) => ({
+              spotifyId: t.album?.id,
+              album: t.album?.name,
+              artists: Array.isArray(t.artists) ? t.artists.map((a: any) => a?.name).filter(Boolean).join(', ') : '',
+              albumCover: t.album?.images?.[0]?.url
+            })).filter((a: any) => a.spotifyId && a.album && a.artists)
+            if (albumsPayload.length > 0) {
+              fetch('/api/data/album/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ albums: albumsPayload })
+              }).catch(console.error)
+            }
           }).catch(console.error);
         }, 100);
         
@@ -298,6 +328,26 @@ const useSpotify = () => {
         dispatch({ type: 'spotify/setHasMore', payload: data.hasMore });
         dispatch({ type: 'spotify/setTotal', payload: data.total });
         dispatch({ type: 'spotify/setLoading', payload: false });
+
+        // Persist albums as well
+        try {
+          const albumsPayload = albumsWithPalettes.map((a: any) => ({
+            spotifyId: a.id,
+            album: a.name,
+            artists: Array.isArray(a.artists) ? a.artists.join(', ') : String(a.artists ?? ''),
+            albumCover: a.albumCover,
+            colourPalette: a.colourPalette,
+          }))
+          if (albumsPayload.length > 0) {
+            await fetch('/api/data/album/bulk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ albums: albumsPayload })
+            })
+          }
+        } catch (e) {
+          console.error('Error persisting albums:', e)
+        }
         
         return albumsWithPalettes;
       }

@@ -1,10 +1,10 @@
-import { SpotifyTrack } from "@/app/utils/interfaces";
+import { SpotifyAlbum, SpotifyTrack } from "@/app/utils/interfaces";
 
 const backend_url = process.env.NEXT_PUBLIC_MOODIFY_BACKEND_URL
 
 export const fetchTracksFromDatabase = async (trackIds: string[]): Promise<SpotifyTrack[]> => {
   try {
-    const response = await fetch(`${backend_url}/spotify`, {
+    const response = await fetch(`${backend_url}/spotify/tracks/bulk`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ export const fetchTracksFromDatabase = async (trackIds: string[]): Promise<Spoti
 
 export const fetchTrackFromDatabase = async (trackId: string): Promise<SpotifyTrack | null> => {
   try {
-    const response = await fetch(`${backend_url}/spotify/${trackId}`, {
+    const response = await fetch(`${backend_url}/spotify/tracks/${trackId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -43,20 +43,23 @@ export const fetchTrackFromDatabase = async (trackId: string): Promise<SpotifyTr
 
 export const uploadTrackToDatabase = async (track: SpotifyTrack): Promise<void> => {
   try {
-    const response = await fetch(`${backend_url}/spotify`, {
+    const response = await fetch(`${backend_url}/spotify/tracks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        "sptifyId": track.id,
-        "title": track.title,
-        "artists": track.artists,
-        "album": track.album,
-        "albumCover": track.albumCover,
-        "songUrl": track.songUrl,
-        "previewUrl": track.previewUrl ?? null,
-        "colourPalette": track.colourPalette
+        // NOTE: The single-track endpoint in the backend requires additional fields
+        // like spotifyAlbumId and albumColourPalette. This payload only includes
+        // readily available properties; calls to this function may fail unless
+        // extended upstream with required fields.
+        spotifyId: track.id,
+        title: track.title,
+        artists: Array.isArray(track.artists) ? track.artists.join(', ') : String(track.artists ?? ''),
+        album: track.album,
+        albumCover: track.albumCover,
+        songUrl: track.songUrl,
+        colourPalette: track.colourPalette
       }),
     });
     if (!response.ok) {
@@ -67,31 +70,75 @@ export const uploadTrackToDatabase = async (track: SpotifyTrack): Promise<void> 
   }
 }
 
-export const uploadTracksToDatabase = async (tracks: SpotifyTrack[]): Promise<void> => {
-  try {
-    const formattedTracks = tracks.map(track => ({
-      spotifyId: track.id,
-      title: track.title,
-      artists: track.artists,
-      album: track.album,
-      albumCover: track.albumCover,
-      songUrl: track.songUrl,
-      previewUrl: track.previewUrl ?? null,
-      colourPalette: track.colourPalette
-    }));
+export const uploadTracksToDatabase = async (tracks: SpotifyTrack[]): Promise<any> => {
+  const formattedTracks = tracks.map(track => ({
+    spotifyId: track.id,
+    title: track.title,
+    // Backend expects a comma-separated string for artists
+    artists: Array.isArray(track.artists) ? track.artists.join(', ') : String(track.artists ?? ''),
+    album: track.album,
+    albumCover: track.albumCover,
+    songUrl: track.songUrl,
+    // previewUrl is not part of BulkCreateTracksRequest schema; omit it
+    colourPalette: track.colourPalette
+  }));
 
-    const response = await fetch(`${backend_url}/spotify/bulk`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formattedTracks),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to upload tracks: ${response.statusText}`);
-    }
-    return response.json()
-  } catch (error) {
-    console.error('Error uploading tracks to database:', error);
+  const response = await fetch(`${backend_url}/spotify/tracks/bulk`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(formattedTracks),
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Failed to upload tracks: ${response.status} ${response.statusText}${text ? ` - ${text}` : ''}`);
   }
+  return response.json();
+}
+
+// Create a single album in the backend
+export const uploadAlbumToDatabase = async (album: {
+  spotifyId: string;
+  album: string;
+  artists: string | string[];
+  albumCover?: string;
+  colourPalette?: number[][];
+}): Promise<any> => {
+  const payload = {
+    spotifyId: album.spotifyId,
+    album: album.album,
+    artists: Array.isArray(album.artists) ? album.artists.join(', ') : String(album.artists ?? ''),
+    albumCover: album.albumCover,
+    colourPalette: album.colourPalette,
+  };
+
+  const response = await fetch(`${backend_url}/spotify/albums`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok && response.status !== 200 && response.status !== 201) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Failed to upload album: ${response.status} ${response.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return response.json();
+}
+
+// Convenience helper to upload many albums (no backend bulk endpoint)
+export const uploadAlbumsToDatabase = async (albums: Array<{
+  spotifyId: string;
+  album: string;
+  artists: string | string[];
+  albumCover?: string;
+  colourPalette?: number[][];
+}>): Promise<any[]> => {
+  if (!albums || albums.length === 0) return [];
+  const unique = new Map<string, {
+    spotifyId: string; album: string; artists: string | string[]; albumCover?: string; colourPalette?: number[][];
+  }>();
+  for (const a of albums) {
+    if (a.spotifyId && !unique.has(a.spotifyId)) unique.set(a.spotifyId, a);
+  }
+  return Promise.all(Array.from(unique.values()).map(uploadAlbumToDatabase));
 }
