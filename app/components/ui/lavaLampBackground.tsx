@@ -4,6 +4,7 @@ import { RootState } from '@/lib/store'
 import { ShaderGradient, ShaderGradientCanvas } from '@shadergradient/react'
 import React, { useMemo } from 'react'
 import { useSelector } from 'react-redux'
+import { useTheme } from '@/app/components/ThemeProvider'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as reactSpring from '@react-spring/three'
 
@@ -31,11 +32,21 @@ type Props = {
 
 export default function LavaLampBackground({ palette, tempo, trackId }: Props = {}) {
   const selectedTrack = useSelector((s: RootState) => s.spotify.selectedTrack)
+  const { theme } = useTheme()
+
+  // Brand-inspired default palettes derived from the logo hues.
+  // Dark: deeper, saturated tones that sit well on black.
+  // Light: brighter, softer tones that play nicely on white.
+  const brandDefaults = useMemo(() => (
+    theme === 'dark'
+      ? ['#6D28D9', '#EA580C', '#0891B2'] // violet-700, orange-600, cyan-600
+      : ['#A78BFA', '#FBBF24', '#38BDF8'] // violet-300/400, amber-400, sky-400
+  ), [theme])
 
   const effectivePalette = palette ?? selectedTrack?.colourPalette
-  const color1 = rgbToHex(effectivePalette?.[0] ?? [255, 255, 255])
-  const color2 = rgbToHex(effectivePalette?.[1] ?? [0, 128, 255])
-  const color3 = rgbToHex(effectivePalette?.[2] ?? [0, 0, 0])
+  const color1 = effectivePalette?.[0] ? rgbToHex(effectivePalette[0]) : brandDefaults[0]
+  const color2 = effectivePalette?.[1] ? rgbToHex(effectivePalette[1]) : brandDefaults[1]
+  const color3 = effectivePalette?.[2] ? rgbToHex(effectivePalette[2]) : brandDefaults[2]
 
   const speed = useMemo(() => bpmToSpeed(tempo ?? selectedTrack?.tempo), [tempo, selectedTrack?.tempo])
 
@@ -74,7 +85,7 @@ export default function LavaLampBackground({ palette, tempo, trackId }: Props = 
         />
       </ShaderGradientCanvas>
       {/* Readability overlay */}
-      <div className='absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40' />
+      <div className='absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-white/60 dark:via-black/20 dark:to-black/40' />
     </div>
   )
 }
