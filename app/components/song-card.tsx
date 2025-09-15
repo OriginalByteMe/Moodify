@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { Play, Wand2, Music2, Ban, Maximize2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SpotifyTrack } from '../utils/interfaces';
 import useTheme from '@/hooks/useTheme';
@@ -73,6 +74,7 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 	const { applyPalette, resetPalette } = useTheme();
 	const currentTrack = track
 	const { play, stop } = usePreviewPlayer()
+  const router = useRouter()
   const hasPreview = Boolean(track.previewUrl)
 
 	const handleMagicWandClick = useCallback(() => {
@@ -98,17 +100,9 @@ export const SongCard = memo(({ track }: { track: SpotifyTrack }) => {
 
 	const handleEnterImmersive = useCallback(() => {
 		if (!currentTrack) return;
-		if (!selectedTrack || selectedTrack.id !== currentTrack.id) {
-			dispatch({ type: 'spotify/setSelectedTrack', payload: currentTrack });
-			if (currentTrack.colourPalette) {
-				applyPalette(currentTrack.colourPalette);
-			}
-			if (currentTrack.previewUrl) {
-				play(currentTrack);
-			}
-		}
-		dispatch({ type: 'spotify/enterFullscreen' });
-	}, [currentTrack, selectedTrack, dispatch, applyPalette, play]);
+		// Navigate to dedicated play page for smoother transition
+		router.push(`/play/${encodeURIComponent(currentTrack.id)}`)
+	}, [currentTrack, router]);
 
 	const handleInfoClick = useCallback(() => {
 		if (!currentTrack) return;

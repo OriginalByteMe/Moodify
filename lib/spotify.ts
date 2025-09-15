@@ -154,3 +154,34 @@ export async function getAlbumTracks(albumId: string) {
 		throw error;
 	}
 }
+
+export async function getTrackById(trackId: string) {
+  try {
+    const token = await getAccessToken();
+    const response = await fetch(`https://api.spotify.com/v1/tracks/${encodeURIComponent(trackId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      next: { revalidate: 0 },
+    })
+    if (!response.ok) throw new Error(`Failed to fetch track ${trackId}`)
+    const item = await response.json()
+    // Try to enrich previewUrl if missing
+    let previewUrl: string | null = item?.preview_url ?? null
+    if (!previewUrl) {
+      try {
+        const name: string = item?.name ?? ''
+        const artists: string[] = Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.name).filter(Boolean) : []
+        const pfRes = await previewFinder(name, artists[0] ?? undefined, 3)
+        if (pfRes && pfRes.success && Array.isArray(pfRes.results) && pfRes.results.length > 0) {
+          const match = pfRes.results.find((r: any) => r.trackId === trackId) || pfRes.results[0]
+          if (Array.isArray(match.previewUrls) && match.previewUrls.length > 0) {
+            previewUrl = match.previewUrls[0]
+          }
+        }
+      } catch {}
+    }
+    return { ...item, previewUrl }
+  } catch (e) {
+    console.error('Error fetching track by id:', e)
+    throw e
+  }
+}

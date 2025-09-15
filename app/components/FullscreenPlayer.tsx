@@ -53,7 +53,7 @@ export default function FullscreenPlayer() {
   const hasPreview = Boolean(track?.previewUrl)
 
   // Do not render overlay on share pages; those have their own layout
-  if (pathname?.startsWith('/share')) return null
+  if (pathname?.startsWith('/share') || pathname?.startsWith('/play')) return null
   if (!isFullscreen || !track) return null
 
   return (

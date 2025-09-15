@@ -2,10 +2,11 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useMemo } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import { SpotifyTrack } from "@/app/utils/interfaces"
-import { Pause, Play } from "lucide-react"
+import { Pause, Play, Share2, X } from "lucide-react"
 import { usePreviewPlayer } from "@/app/components/PreviewPlayer"
 import { useDispatch } from "react-redux"
 import { enterFullscreen, exitFullscreen, setSelectedTrack } from "@/lib/features/spotifySlice"
@@ -45,41 +46,79 @@ function normalizeTrack(t: any) {
   }
 }
 
-export default function ShareClient({ track }: { track: SpotifyTrack }) {
+export default function PlayClient({ track }: { track: SpotifyTrack }) {
   const shown = normalizeTrack(track)
+  const router = useRouter()
   const dispatch = useDispatch()
   const { isPlaying, play, pause, resume } = usePreviewPlayer()
+  const [leaving, setLeaving] = useState(false)
+  const [entered, setEntered] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    // Hide global mini player and set selected track for background
+    // Enter immersive mode: hide mini-player, set track, try autoplay
     dispatch(enterFullscreen())
     dispatch(setSelectedTrack(shown as any))
-    // Try to start playback (may be blocked)
+    setTimeout(() => setEntered(true), 10)
     if (shown.previewUrl) {
       try { play(shown as any) } catch {}
     }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleBack()
+    }
+    window.addEventListener('keydown', onKey)
     return () => {
+      window.removeEventListener('keydown', onKey)
       dispatch(exitFullscreen())
       dispatch(setSelectedTrack(null))
     }
-  }, [dispatch, play, track])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch])
+
+  const handleBack = () => {
+    setLeaving(true)
+    setTimeout(() => router.back(), 250)
+  }
+
+  const onShare = async () => {
+    try {
+      const url = `${window.location.origin}/share/${encodeURIComponent(shown.id)}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className={`relative min-h-screen overflow-hidden transition-all duration-300 ease-out ${entered && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
       <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
-      {/* Top-left logo and CTA */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-3">
+
+      {/* Top bar */}
+      <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="Moodify" width={40} height={40} />
           <span className="text-white/90 font-semibold text-lg hidden sm:inline">Moodify</span>
         </Link>
-      </div>
-      <div className="absolute top-4 right-4 z-20">
-        <Link href="/" className="px-4 py-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur font-medium">Try other songs →</Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onShare}
+            className="px-4 py-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur font-medium flex items-center gap-2"
+            title="Copy shareable link"
+          >
+            <Share2 className="w-4 h-4" /> Share
+          </button>
+          <button
+            onClick={handleBack}
+            className="p-2 rounded-full bg-white/90 hover:bg-white text-gray-900 backdrop-blur"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Center content */}
-      <div className="relative z-10 flex flex-col items-center justify-center pt-24 pb-40 px-6 text-center">
+      <div className="relative z-10 max-w-3xl w-full px-6 text-center mx-auto pt-24 pb-40">
         <div className="mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
           <Image src={shown.albumCover || '/placeholder.svg?height=300&width=300'} alt={shown.title} width={320} height={320} className="w-full h-full object-cover" />
         </div>
@@ -122,6 +161,10 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
           </div>
         </div>
       </div>
+
+      {copied && (
+        <div className="absolute top-20 right-6 z-20 px-3 py-2 rounded bg-black/70 text-white text-sm">Link copied!</div>
+      )}
     </div>
   )
 }
