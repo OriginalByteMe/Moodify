@@ -4,6 +4,7 @@ import { X, ExternalLink, Play, Clock, Calendar, Music, Palette, Wand2 } from 'l
 import { Button } from '@/components/ui/button'
 import { SpotifyAlbum, SpotifyTrack } from '../utils/interfaces'
 import useSpotify from '@/hooks/useSpotify'
+import { usePreviewPlayer } from '@/app/components/PreviewPlayer'
 
 interface AlbumTracksModalProps {
   album: SpotifyAlbum | null
@@ -17,8 +18,7 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
   const [selectedTrack, setSelectedTrack] = useState<any>(null)
   const [showPalette, setShowPalette] = useState<string | null>(null)
   const { fetchColourPalette } = useSpotify()
-  // Use a ref for audio element
-  const _audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const { play } = usePreviewPlayer()
 
   useEffect(() => {
     if (isOpen && album) {
@@ -107,15 +107,7 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
     }
   }
 
-  // Stop preview when modal closes or component unmounts
-  useEffect(() => {
-    if (!isOpen) {
-      stopPreview()
-    }
-  }, [isOpen])
-  useEffect(() => {
-    return () => stopPreview()
-  }, [])
+  // Keep previews playing across modal visibility
 
   const handleTrackClick = (track: any) => {
     setSelectedTrack(track)
@@ -128,36 +120,7 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
     }
   }
 
-  const playPreview = (track: any) => {
-    const url = track?.previewUrl
-    if (!url) {
-      console.warn('[Preview] No preview URL available for album track:', { id: track?.id, name: track?.name ?? track?.title })
-      return
-    }
-    try {
-      if (!_audioRef.current || _audioRef.current.src !== url) {
-        if (_audioRef.current) {
-          _audioRef.current.pause()
-        }
-        _audioRef.current = new Audio(url)
-      }
-      _audioRef.current.currentTime = 0
-      _audioRef.current.play().catch(err => {
-        console.warn('[Preview] Failed to play album track preview:', err)
-      })
-    } catch (e) {
-      console.warn('[Preview] Error initializing album track preview audio:', e)
-    }
-  }
-
-  const stopPreview = () => {
-    try {
-      if (_audioRef.current) {
-        _audioRef.current.pause()
-        _audioRef.current.currentTime = 0
-      }
-    } catch {}
-  }
+  // Using global preview player instead of local audio
 
   const togglePalette = (trackId: string) => {
     setShowPalette(showPalette === trackId ? null : trackId)
@@ -339,7 +302,18 @@ export const AlbumTracksModal = ({ album, isOpen, onClose }: AlbumTracksModalPro
                         onClick={(e) => {
                           e.stopPropagation()
                           handleTrackClick(track)
-                          playPreview(track)
+                          const normalized = {
+                            id: track.id,
+                            title: track.name ?? track.title,
+                            artists: Array.isArray(track.artists) ? track.artists.map((a: any) => a?.name).filter(Boolean) : [],
+                            album: album.name,
+                            albumId: album.id,
+                            albumCover: album.albumCover,
+                            songUrl: track.external_urls?.spotify || '',
+                            previewUrl: track.previewUrl ?? null,
+                            colourPalette: track.colourPalette ?? album.colourPalette
+                          }
+                          play(normalized as any)
                         }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity"
                         title={track.previewUrl ? 'Apply colors and play preview' : 'No preview available'}
