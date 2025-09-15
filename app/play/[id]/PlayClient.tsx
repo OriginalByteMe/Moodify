@@ -180,9 +180,18 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
         {/* Nerd stats toggle */}
         <div className="mt-4">
-          <Button variant="outline" onClick={() => setShowStats(s => !s)} aria-expanded={showStats} aria-controls="nerd-stats">
-            {showStats ? 'Hide nerd stats' : 'Show nerd stats'}
-          </Button>
+          <button
+            onClick={() => setShowStats(s => !s)}
+            className={`px-4 py-2 rounded-full backdrop-blur font-medium transition-colors ${
+              theme === 'dark'
+                ? 'bg-gray-800/90 hover:bg-gray-700 text-white border border-gray-600/50'
+                : 'bg-white/90 hover:bg-white text-gray-900'
+            }`}
+            aria-expanded={showStats}
+            aria-controls="nerd-stats"
+          >
+            {showStats ? 'Hide nerd stats 🥹' : 'Show nerd stats 🤓'}
+          </button>
         </div>
 
         {/* Nerd stats content */}
