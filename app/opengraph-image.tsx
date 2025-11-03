@@ -95,6 +95,7 @@ export default async function Image() {
         >
           <div
             style={{
+              display: 'flex',
               fontSize: 96,
               fontWeight: 'bold',
               color: 'white',
@@ -105,6 +106,7 @@ export default async function Image() {
           </div>
           <div
             style={{
+              display: 'flex',
               fontSize: 36,
               color: '#cbd5e1',
               fontWeight: 500,
@@ -148,6 +150,7 @@ export default async function Image() {
                 {/* Color swatch */}
                 <div
                   style={{
+                    display: 'flex',
                     width: 70,
                     height: 70,
                     borderRadius: '50%',
@@ -159,6 +162,7 @@ export default async function Image() {
                 {/* RGB value */}
                 <div
                   style={{
+                    display: 'flex',
                     fontSize: 16,
                     color: '#94a3b8',
                     fontFamily: 'monospace',
