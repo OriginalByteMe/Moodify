@@ -19,7 +19,7 @@ function normalizeTrack(t: any): SpotifyTrack | null {
     id,
     title,
     artists,
-    album: t.album ?? t.album_name ?? '',
+    album: t.album?.name ?? t.album_name ?? '',
     albumId: t.albumId ?? t.spotifyAlbumId,
     albumCover: t.albumCover ?? t.album?.images?.[0]?.url,
     songUrl: t.songUrl ?? t.external_urls?.spotify ?? '',

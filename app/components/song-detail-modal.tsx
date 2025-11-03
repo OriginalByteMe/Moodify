@@ -29,7 +29,7 @@ export const SongDetailModal = ({ track, isOpen, onClose, onAlbumClick }: SongDe
       id: t.id ?? t.spotifyId ?? '',
       title: t.title ?? t.track_name ?? t.name ?? '',
       artists,
-      album: t.album ?? t.album_name ?? '',
+      album: t.album?.name ?? t.album_name ?? '',
       albumId: t.albumId ?? t.spotifyAlbumId,
       albumCover: t.albumCover,
       songUrl: t.songUrl ?? t.external_urls?.spotify ?? '',
