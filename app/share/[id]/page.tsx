@@ -26,21 +26,27 @@ export async function generateMetadata({
 
   // Build stats description
   const statsStr = [
-    track.tempo ? `Tempo: ${Math.round(track.tempo)} BPM` : null,
-    track.energy ? `Energy: ${track.energy.toFixed(2)}` : null,
-    track.danceability ? `Danceability: ${track.danceability.toFixed(2)}` : null,
-  ].filter(Boolean).join(' • ')
+    typeof track.tempo === 'number' ? `Tempo: ${Math.round(track.tempo)} BPM` : null,
+    typeof track.energy === 'number' ? `Energy: ${track.energy.toFixed(2)}` : null,
+    typeof track.danceability === 'number'
+      ? `Danceability: ${track.danceability.toFixed(2)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' • ') || 'Stats unavailable'
 
-  const description = statsStr
-    ? `Listen to ${track.title} with its unique color palette. ${statsStr}`
-    : `Listen to ${track.title} with its unique color palette: ${paletteStr}`
+  const details = [paletteStr, statsStr].filter(Boolean).join(' • ')
+
+  const description = [`Listen to ${track.title} by ${track.artists.join(', ')}`, details]
+    .filter(Boolean)
+    .join(' • ')
 
   return {
     title: `${track.title} by ${track.artists.join(', ')} - Moodified`,
     description,
     openGraph: {
       title: `${track.title} - Moodified`,
-      description: `By ${track.artists.join(', ')} • ${paletteStr}`,
+      description: [`By ${track.artists.join(', ')}`, details].filter(Boolean).join(' • '),
       images: [
         {
           url: `/share/${params.id}/opengraph-image`,
@@ -55,7 +61,7 @@ export async function generateMetadata({
     twitter: {
       card: 'summary_large_image',
       title: `${track.title} - Moodified`,
-      description: `By ${track.artists.join(', ')} • ${statsStr || paletteStr}`,
+      description: [`By ${track.artists.join(', ')}`, details].filter(Boolean).join(' • '),
       images: [`/share/${params.id}/opengraph-image`],
     },
   }
