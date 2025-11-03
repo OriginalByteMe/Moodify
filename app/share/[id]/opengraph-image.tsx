@@ -10,6 +10,7 @@ export const size = {
   height: 630,
 }
 export const contentType = 'image/png'
+export const runtime = 'nodejs'
 
 // Default emerald palette (fallback from LavaLampBackground)
 const DEFAULT_PALETTE = [

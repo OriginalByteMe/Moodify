@@ -9,6 +9,7 @@ export const size = {
   height: 630,
 }
 export const contentType = 'image/png'
+export const runtime = 'nodejs'
 
 // Moodify brand color palette (from LavaLampBackground dark theme)
 const BRAND_PALETTE = [
