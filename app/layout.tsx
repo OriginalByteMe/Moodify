@@ -27,39 +27,18 @@ export const metadata = {
   openGraph: {
     title: 'Moodify',
     description: 'Pick a song, paint the mood.',
-    images: [
-      {
-        url: '/moodify.gif', 
-        width: 800,
-        height: 600,
-        alt: 'Moodify site preview',
-      },
-    ],
+    siteName: 'Moodify',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Moodify',
+    description: 'Pick a song, paint the mood.',
   },
 }
 export default function RootLayout({ children }: Props) {
   return (
     <html lang="en">
-      <head>
-        <meta property="og:title" content={metadata.openGraph.title} />
-        <meta
-          property="og:description"
-          content={metadata.openGraph.description}
-          />
-        <meta property="og:image" content={metadata.openGraph.images[0].url} />
-        <meta
-          property="og:image:width"
-          content={metadata.openGraph.images[0].width.toString()}
-          />
-        <meta
-          property="og:image:height"
-          content={metadata.openGraph.images[0].height.toString()}
-          />
-        <meta
-          property="og:image:alt"
-          content={metadata.openGraph.images[0].alt}
-          />
-      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <StoreProvider>

@@ -2,9 +2,20 @@
   "permissions": {
     "allow": [
       "mcp__sequential-thinking__sequentialthinking",
-      "mcp__browser-tools__takeScreenshot"
+      "mcp__browser-tools__takeScreenshot",
+      "mcp__context7__resolve-library-id",
+      "mcp__tavily__tavily_search",
+      "mcp__serena__find_file",
+      "mcp__serena__activate_project",
+      "mcp__context7__get-library-docs",
+      "mcp__serena__get_current_config",
+      "mcp__serena__think_about_collected_information"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ]
 }
