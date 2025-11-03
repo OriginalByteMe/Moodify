@@ -26,7 +26,7 @@ function normalizeTrack(t: any) {
     id: t.id ?? t.spotifyId ?? '',
     title: t.title ?? t.track_name ?? t.name ?? '',
     artists,
-    album: t.album ?? t.album_name ?? '',
+    album: t.album?.name ?? t.album_name ?? '',
     albumId: t.albumId ?? t.spotifyAlbumId,
     albumCover: t.albumCover ?? t.album_cover,
     songUrl: t.songUrl ?? t.external_urls?.spotify ?? '',
