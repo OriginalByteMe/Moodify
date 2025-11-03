@@ -102,6 +102,26 @@ export default async function Image({ params }: { params: { id: string } }) {
     const logoSvg = await readFile(join(process.cwd(), 'public/logo.svg'), 'utf-8')
     const logoDataUrl = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString('base64')}`
 
+    let albumArtDataUrl: string | null = null
+
+    if (albumArt) {
+      try {
+        const albumArtResponse = await fetch(albumArt)
+
+        if (!albumArtResponse.ok) {
+          throw new Error(`Failed to fetch album art: ${albumArtResponse.status}`)
+        }
+
+        const albumArtArrayBuffer = await albumArtResponse.arrayBuffer()
+        const albumArtBuffer = Buffer.from(albumArtArrayBuffer)
+        const albumArtContentType = albumArtResponse.headers.get('content-type') ?? 'image/jpeg'
+
+        albumArtDataUrl = `data:${albumArtContentType};base64,${albumArtBuffer.toString('base64')}`
+      } catch (albumArtError) {
+        console.warn('Falling back to Moodify logo for album art:', albumArtError)
+      }
+    }
+
     // Format artist names
     const artistText = track.artists.join(', ')
 
@@ -186,7 +206,7 @@ export default async function Image({ params }: { params: { id: string } }) {
                 backgroundColor: '#1e293b',
               }}
             >
-              {useDefaultLogo ? (
+              {useDefaultLogo || !albumArtDataUrl ? (
                 <img
                   src={logoDataUrl}
                   width={280}
@@ -198,7 +218,7 @@ export default async function Image({ params }: { params: { id: string } }) {
                 />
               ) : (
                 <img
-                  src={albumArt}
+                  src={albumArtDataUrl}
                   width={400}
                   height={400}
                   alt={track.title}
