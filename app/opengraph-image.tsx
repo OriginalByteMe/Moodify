@@ -79,8 +79,7 @@ export default async function Image() {
             height={300}
             alt="Moodify Logo"
             style={{
-              filter: 'brightness(0) invert(1)',
-              dropShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
+              filter: 'brightness(0) invert(1) drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5))',
             }}
           />
         </div>
