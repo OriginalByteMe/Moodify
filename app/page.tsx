@@ -9,8 +9,36 @@ import { useTheme } from "@/app/components/ThemeProvider";
 
 export default function Home() {
   const { theme } = useTheme();
+
+  const webAppSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'Moodify',
+    url: typeof window !== 'undefined' ? window.location.origin : 'https://moodify.app',
+    description: 'Music visualization application that extracts color palettes from Spotify album artwork and creates dynamic 3D backgrounds synchronized to music.',
+    applicationCategory: 'MultimediaApplication',
+    operatingSystem: 'Web Browser',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    featureList: [
+      'Color palette extraction from album artwork',
+      '3D WebGL visualizations',
+      'Spotify integration',
+      'Tempo-driven animations',
+      'Social sharing',
+      'Real-time music search',
+    ],
+  };
+
   return (
     <div className="relative min-h-screen text-black overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppSchema) }}
+      />
       <LavaLampBackground />
       <div className="relative container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center py-12">
