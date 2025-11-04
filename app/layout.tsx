@@ -18,7 +18,7 @@ interface Props {
 export const metadata = {
   title: 'Moodify',
   description: 'Pick a song, paint the mood.',
-  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')),
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
@@ -29,6 +29,7 @@ export const metadata = {
     description: 'Pick a song, paint the mood.',
     siteName: 'Moodify',
     type: 'website',
+    images: ['/opengraph-image'],
   },
   twitter: {
     card: 'summary_large_image',
@@ -43,7 +44,7 @@ export default function RootLayout({ children }: Props) {
         <ThemeProvider>
           <StoreProvider>
             <PreviewPlayerProvider>
-            <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white">
+            <div className="min-h-screen text-black bg-white dark:bg-black dark:text-white">
               <Header />
               {children}
             </div>
