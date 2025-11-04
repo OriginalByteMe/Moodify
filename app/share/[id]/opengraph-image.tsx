@@ -11,6 +11,7 @@ export const size = {
 }
 export const contentType = 'image/png'
 export const runtime = 'nodejs'
+export const revalidate = 3600 // Cache for 1 hour
 
 // Default emerald palette (fallback from LavaLampBackground)
 const DEFAULT_PALETTE = [
@@ -33,6 +34,43 @@ function rgbToHex(rgb: number[]): string {
 function formatStat(value: number | undefined): string {
   if (value === undefined) return 'N/A'
   return value < 1 ? value.toFixed(2) : Math.round(value).toString()
+}
+
+// Helper to fetch with retry logic and timeout
+async function fetchWithRetry(
+  url: string,
+  retries: number = 3,
+  timeout: number = 10000
+): Promise<Response> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+      const response = await fetch(url, { signal: controller.signal })
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return response
+    } catch (error) {
+      const isLastAttempt = attempt === retries
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      if (isLastAttempt) {
+        console.error(`Failed to fetch ${url} after ${retries} attempts:`, errorMessage)
+        throw error
+      }
+
+      console.warn(`Fetch attempt ${attempt}/${retries} failed for ${url}:`, errorMessage)
+      // Exponential backoff: wait 100ms, 200ms, 400ms...
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)))
+    }
+  }
+
+  throw new Error('Unexpected: retry loop completed without return or throw')
 }
 
 // Image generation
@@ -106,11 +144,8 @@ export default async function Image({ params }: { params: { id: string } }) {
 
     if (albumArt) {
       try {
-        const albumArtResponse = await fetch(albumArt)
-
-        if (!albumArtResponse.ok) {
-          throw new Error(`Failed to fetch album art: ${albumArtResponse.status}`)
-        }
+        // Fetch album art with retry logic and 10-second timeout
+        const albumArtResponse = await fetchWithRetry(albumArt, 3, 10000)
 
         const albumArtArrayBuffer = await albumArtResponse.arrayBuffer()
         const albumArtBuffer = Buffer.from(albumArtArrayBuffer)
@@ -118,7 +153,9 @@ export default async function Image({ params }: { params: { id: string } }) {
 
         albumArtDataUrl = `data:${albumArtContentType};base64,${albumArtBuffer.toString('base64')}`
       } catch (albumArtError) {
-        console.warn('Falling back to Moodify logo for album art:', albumArtError)
+        const errorMessage = albumArtError instanceof Error ? albumArtError.message : 'Unknown error'
+        console.error(`Album art fetch failed for track ${params.id}:`, errorMessage)
+        console.warn('Falling back to Moodify logo for album art')
       }
     }
 

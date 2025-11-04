@@ -42,10 +42,10 @@ export async function generateMetadata({
     .join(' • ')
 
   return {
-    title: `${track.title} by ${track.artists.join(', ')} - Moodified`,
+    title: `🎵 ${track.title} by ${track.artists.join(', ')} - Moodified 🎨`,
     description,
     openGraph: {
-      title: `${track.title} - Moodified`,
+      title: `🎵 ${track.title} - Moodified 🎨`,
       description: [`By ${track.artists.join(', ')}`, details].filter(Boolean).join(' • '),
       images: [
         {
@@ -60,7 +60,7 @@ export async function generateMetadata({
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${track.title} - Moodified`,
+      title: `🎵 ${track.title} - Moodified 🎨`,
       description: [`By ${track.artists.join(', ')}`, details].filter(Boolean).join(' • '),
       images: [`/share/${params.id}/opengraph-image`],
     },
