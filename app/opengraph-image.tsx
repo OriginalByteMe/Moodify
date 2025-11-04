@@ -1,6 +1,4 @@
 import { ImageResponse } from 'next/og'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 
 // Image metadata
 export const alt = 'Moodify - Pick a song, paint the mood'
@@ -28,10 +26,29 @@ function rgbToHex(rgb: number[]): string {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 }
 
+// In-memory cache for logo to avoid repeated fetches
+let logoCache: string | null = null
+
+// Helper to fetch logo from public URL (serverless-compatible)
+async function getLogo(): Promise<string> {
+  if (logoCache) return logoCache
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+  const response = await fetch(`${baseUrl}/logo.svg`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch logo: ${response.status}`)
+  }
+
+  logoCache = await response.text()
+  return logoCache
+}
+
 // Image generation
 export default async function Image() {
   // Load Moodify logo
-  const logoSvg = await readFile(join(process.cwd(), 'public/logo.svg'), 'utf-8')
+  const logoSvg = await getLogo()
   const logoDataUrl = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString('base64')}`
 
   // Get hex colors for gradient
