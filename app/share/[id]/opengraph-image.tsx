@@ -1,7 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { getTrackCached } from '@/lib/get-track-cached'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { SpotifyTrack } from '@/app/utils/interfaces'
 
 // Image metadata
 export const alt = 'Moodify track visualization'
@@ -73,14 +71,42 @@ async function fetchWithRetry(
   throw new Error('Unexpected: retry loop completed without return or throw')
 }
 
+// In-memory cache for logo to avoid repeated fetches
+let logoCache: string | null = null
+
+// Helper to fetch logo from public URL (serverless-compatible)
+async function getLogo(): Promise<string> {
+  if (logoCache) return logoCache
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+  const response = await fetch(`${baseUrl}/logo.svg`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch logo: ${response.status}`)
+  }
+
+  logoCache = await response.text()
+  return logoCache
+}
+
 // Image generation
 export default async function Image({ params }: { params: { id: string } }) {
   try {
-    const track = await getTrackCached(params.id)
+    // Fetch track data from API endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-    if (!track) {
+    const response = await fetch(`${baseUrl}/api/track/${params.id}`, {
+      next: {
+        revalidate: 3600, // Match OG image cache duration
+        tags: [`track-${params.id}`] // Enable manual invalidation
+      }
+    })
+
+    if (!response.ok) {
       // Return default Moodify image if track not found
-      const logoSvg = await readFile(join(process.cwd(), 'public/logo.svg'), 'utf-8')
+      const logoSvg = await getLogo()
 
       return new ImageResponse(
         (
@@ -122,6 +148,9 @@ export default async function Image({ params }: { params: { id: string } }) {
       )
     }
 
+    // Parse track data from API response
+    const track: SpotifyTrack = await response.json()
+
     // Use track palette or fallback to default
     const palette = track.colourPalette && track.colourPalette.length >= 5
       ? track.colourPalette
@@ -137,7 +166,7 @@ export default async function Image({ params }: { params: { id: string } }) {
     const useDefaultLogo = !albumArt
 
     // Load logo for branding
-    const logoSvg = await readFile(join(process.cwd(), 'public/logo.svg'), 'utf-8')
+    const logoSvg = await getLogo()
     const logoDataUrl = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString('base64')}`
 
     let albumArtDataUrl: string | null = null
