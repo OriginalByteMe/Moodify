@@ -29,7 +29,6 @@ export const metadata = {
     description: 'Pick a song, paint the mood.',
     siteName: 'Moodify',
     type: 'website',
-    images: ['/opengraph-image'],
   },
   twitter: {
     card: 'summary_large_image',
