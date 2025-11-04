@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og'
-import { getTrackCached } from '@/lib/get-track-cached'
+import { SpotifyTrack } from '@/app/utils/interfaces'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -76,9 +76,18 @@ async function fetchWithRetry(
 // Image generation
 export default async function Image({ params }: { params: { id: string } }) {
   try {
-    const track = await getTrackCached(params.id)
+    // Fetch track data from API endpoint
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-    if (!track) {
+    const response = await fetch(`${baseUrl}/api/track/${params.id}`, {
+      next: {
+        revalidate: 3600, // Match OG image cache duration
+        tags: [`track-${params.id}`] // Enable manual invalidation
+      }
+    })
+
+    if (!response.ok) {
       // Return default Moodify image if track not found
       const logoSvg = await readFile(join(process.cwd(), 'public/logo.svg'), 'utf-8')
 
@@ -121,6 +130,9 @@ export default async function Image({ params }: { params: { id: string } }) {
         }
       )
     }
+
+    // Parse track data from API response
+    const track: SpotifyTrack = await response.json()
 
     // Use track palette or fallback to default
     const palette = track.colourPalette && track.colourPalette.length >= 5
