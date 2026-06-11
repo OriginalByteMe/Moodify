@@ -13,6 +13,9 @@ import * as reactSpring from '@react-spring/three'
 // Custom renderers are loaded on demand so the gradient path stays light
 const ParticleField = dynamic(() => import('@/app/components/ui/backgrounds/ParticleField'), { ssr: false })
 const MorphBlob = dynamic(() => import('@/app/components/ui/backgrounds/MorphBlob'), { ssr: false })
+const EqualizerBars = dynamic(() => import('@/app/components/ui/backgrounds/EqualizerBars'), { ssr: false })
+const WireTunnel = dynamic(() => import('@/app/components/ui/backgrounds/WireTunnel'), { ssr: false })
+const RibbonWaves = dynamic(() => import('@/app/components/ui/backgrounds/RibbonWaves'), { ssr: false })
 
 function rgbToHex(rgb?: number[]): string {
   if (!rgb || rgb.length < 3) return '#000000'
@@ -21,6 +24,24 @@ function rgbToHex(rgb?: number[]): string {
     return clamped.toString(16).padStart(2, '0')
   }
   return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`
+}
+
+/**
+ * WebGL scenes can fail at runtime (ShaderGradient fetches HDR environment
+ * maps from a CDN; GPUs/contexts can be lost). Each failure escalates to a
+ * simpler render: full scene -> no-fetch '3d' lighting -> static backdrop.
+ */
+class SceneErrorBoundary extends React.Component<
+  { render: (attempt: number) => React.ReactNode },
+  { attempt: number }
+> {
+  state = { attempt: 0 }
+  componentDidCatch() {
+    this.setState((s) => ({ attempt: s.attempt + 1 }))
+  }
+  render() {
+    return this.props.render(this.state.attempt)
+  }
 }
 
 /** Dim a hex color towards black (factor 0 = black, 1 = unchanged) */
@@ -39,6 +60,8 @@ type Props = {
   mood?: string
   energy?: number
   valence?: number
+  /** QA/demo override: skip the seeded pick and force a renderer */
+  forceRenderer?: import('@/lib/mood-visuals').SceneRenderer
 }
 
 /**
@@ -47,7 +70,7 @@ type Props = {
  * album palette, and its pacing from tempo/energy. A per-mount variation
  * seed keeps repeat visits fresh.
  */
-export default function LavaLampBackground({ palette, tempo, trackId, genres, mood, energy, valence }: Props = {}) {
+export default function LavaLampBackground({ palette, tempo, trackId, genres, mood, energy, valence, forceRenderer }: Props = {}) {
   const selectedTrack = useSelector((s: RootState) => s.spotify.selectedTrack)
   const { theme } = useTheme()
 
@@ -69,15 +92,18 @@ export default function LavaLampBackground({ palette, tempo, trackId, genres, mo
   const effectiveEnergy = energy ?? selectedTrack?.energy
   const effectiveValence = valence ?? selectedTrack?.valence
 
-  const scene = useMemo(() => buildSceneConfig({
-    trackId: effectiveId,
-    genres: effectiveGenres,
-    mood: effectiveMood,
-    tempo: effectiveTempo,
-    energy: effectiveEnergy,
-    valence: effectiveValence,
-    variationSeed,
-  }), [effectiveId, effectiveGenres, effectiveMood, effectiveTempo, effectiveEnergy, effectiveValence, variationSeed])
+  const scene = useMemo(() => {
+    const built = buildSceneConfig({
+      trackId: effectiveId,
+      genres: effectiveGenres,
+      mood: effectiveMood,
+      tempo: effectiveTempo,
+      energy: effectiveEnergy,
+      valence: effectiveValence,
+      variationSeed,
+    })
+    return forceRenderer ? { ...built, renderer: forceRenderer } : built
+  }, [effectiveId, effectiveGenres, effectiveMood, effectiveTempo, effectiveEnergy, effectiveValence, variationSeed, forceRenderer])
 
   const orderedColors = useMemo(() => {
     const fromPalette = (index: number): string | undefined => {
@@ -103,25 +129,30 @@ export default function LavaLampBackground({ palette, tempo, trackId, genres, mo
     [effectiveId, variationSeed]
   )
 
-  if (scene.renderer === 'particles' || scene.renderer === 'blob') {
+  if (scene.renderer !== 'gradient') {
+    const rendererProps = {
+      colors: orderedColors,
+      tempo: effectiveTempo,
+      scene,
+      backgroundColor: canvasBackground,
+    }
     return (
       <div className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'>
-        {scene.renderer === 'particles' ? (
-          <ParticleField
-            colors={orderedColors}
-            tempo={effectiveTempo}
-            scene={scene}
-            seed={layoutSeed}
-            backgroundColor={canvasBackground}
-          />
-        ) : (
-          <MorphBlob
-            colors={orderedColors}
-            tempo={effectiveTempo}
-            scene={scene}
-            backgroundColor={canvasBackground}
-          />
-        )}
+        <SceneErrorBoundary
+          render={(attempt) =>
+            attempt > 0 ? (
+              <div className='absolute inset-0' style={{ background: canvasBackground }} />
+            ) : (
+              <>
+                {scene.renderer === 'particles' && <ParticleField {...rendererProps} seed={layoutSeed} />}
+                {scene.renderer === 'blob' && <MorphBlob {...rendererProps} />}
+                {scene.renderer === 'bars' && <EqualizerBars {...rendererProps} />}
+                {scene.renderer === 'tunnel' && <WireTunnel {...rendererProps} />}
+                {scene.renderer === 'ribbons' && <RibbonWaves {...rendererProps} />}
+              </>
+            )
+          }
+        />
         {/* Readability overlay - only apply in dark mode */}
         <div className='absolute inset-0 bg-gradient-to-b from-transparent dark:via-black/20 dark:to-black/40' />
       </div>
@@ -130,36 +161,47 @@ export default function LavaLampBackground({ palette, tempo, trackId, genres, mo
 
   return (
     <div className='absolute inset-0 w-full h-full pointer-events-none select-none z-0'>
-      <ShaderGradientCanvas
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      >
-        <ShaderGradient
-          animate='on'
-          type={scene.type}
-          color1={orderedColors[0]}
-          color2={orderedColors[1]}
-          color3={orderedColors[2]}
-          uSpeed={scene.uSpeed}
-          uStrength={scene.uStrength}
-          uDensity={scene.uDensity}
-          uFrequency={scene.uFrequency}
-          uAmplitude={scene.uAmplitude}
-          reflection={scene.reflection}
-          brightness={scene.brightness}
-          grain={scene.grain}
-          lightType={scene.lightType}
-          envPreset={scene.envPreset}
-          wireframe={scene.wireframe}
-          cAzimuthAngle={scene.cAzimuthAngle}
-          cPolarAngle={scene.cPolarAngle}
-          cDistance={scene.cDistance}
-          cameraZoom={scene.cameraZoom}
-          rotationX={scene.rotationX}
-          rotationY={scene.rotationY}
-          rotationZ={scene.rotationZ}
-          positionY={scene.positionY}
-        />
-      </ShaderGradientCanvas>
+      {/* Palette backdrop paints first and stays behind the WebGL canvas */}
+      <div className='absolute inset-0' style={{ background: canvasBackground }} />
+      <SceneErrorBoundary
+        render={(attempt) =>
+          attempt > 1 ? null : (
+            <ShaderGradientCanvas
+              key={attempt}
+              style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+            >
+              <ShaderGradient
+                animate='on'
+                type={scene.type}
+                color1={orderedColors[0]}
+                color2={orderedColors[1]}
+                color3={orderedColors[2]}
+                uSpeed={scene.uSpeed}
+                uStrength={scene.uStrength}
+                uDensity={scene.uDensity}
+                uFrequency={scene.uFrequency}
+                uAmplitude={scene.uAmplitude}
+                reflection={scene.reflection}
+                brightness={scene.brightness}
+                grain={scene.grain}
+                // 'env' lighting streams an HDR from a CDN; after a failure
+                // retry with self-contained '3d' lights instead
+                lightType={attempt === 0 ? scene.lightType : '3d'}
+                envPreset={scene.envPreset}
+                wireframe={scene.wireframe}
+                cAzimuthAngle={scene.cAzimuthAngle}
+                cPolarAngle={scene.cPolarAngle}
+                cDistance={scene.cDistance}
+                cameraZoom={scene.cameraZoom}
+                rotationX={scene.rotationX}
+                rotationY={scene.rotationY}
+                rotationZ={scene.rotationZ}
+                positionY={scene.positionY}
+              />
+            </ShaderGradientCanvas>
+          )
+        }
+      />
       {/* Readability overlay - only apply in dark mode */}
       <div className='absolute inset-0 bg-gradient-to-b from-transparent dark:via-black/20 dark:to-black/40' />
     </div>

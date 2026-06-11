@@ -19,8 +19,11 @@ export type GradientType = 'plane' | 'sphere' | 'waterPlane'
  * - 'gradient': ShaderGradient lava-lamp surfaces
  * - 'particles': custom R3F particle field, orbiting and thumping on the beat
  * - 'blob': custom R3F noise-displaced blob, breathing with the tempo
+ * - 'bars': equalizer bar floor slamming on every beat (EDM / hip-hop)
+ * - 'tunnel': wireframe ring tunnel flying at the BPM, jagged for harder genres (rock / metal)
+ * - 'ribbons': layered aurora ribbons drifting with the tempo (jazz / classical / ambient)
  */
-export type SceneRenderer = 'gradient' | 'particles' | 'blob'
+export type SceneRenderer = 'gradient' | 'particles' | 'blob' | 'bars' | 'tunnel' | 'ribbons'
 
 export interface SceneConfig {
   renderer: SceneRenderer
@@ -77,7 +80,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   rock: {
     match: ['rock', 'grunge', 'punk', 'garage', 'psych'],
     types: [{ value: 'plane', weight: 3 }, { value: 'waterPlane', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.5 }, { value: 'particles', weight: 0.4 }, { value: 'blob', weight: 0.1 }],
+    renderers: [{ value: 'tunnel', weight: 0.45 }, { value: 'particles', weight: 0.25 }, { value: 'gradient', weight: 0.3 }],
     uSpeed: [0.5, 0.9], uStrength: [2.6, 3.6], uDensity: [1.6, 2.4],
     uFrequency: [6, 8.5], uAmplitude: [1.2, 1.6], reflection: [0.05, 0.15],
     brightness: [0.9, 1.2], grain: 'on', lightType: '3d', envPreset: 'city',
@@ -86,7 +89,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   metal: {
     match: ['metal', 'hardcore', 'industrial', 'death', 'thrash', 'doom'],
     types: [{ value: 'plane', weight: 3 }, { value: 'sphere', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.45 }, { value: 'particles', weight: 0.45 }, { value: 'blob', weight: 0.1 }],
+    renderers: [{ value: 'tunnel', weight: 0.55 }, { value: 'particles', weight: 0.25 }, { value: 'gradient', weight: 0.2 }],
     uSpeed: [0.7, 1.1], uStrength: [3.2, 4.2], uDensity: [2, 3],
     uFrequency: [7.5, 10], uAmplitude: [1.4, 1.9], reflection: [0, 0.1],
     brightness: [0.6, 0.9], grain: 'on', lightType: '3d', envPreset: 'city',
@@ -95,7 +98,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   edm: {
     match: ['edm', 'house', 'techno', 'dubstep', 'trance', 'electro', 'dance', 'rave', 'drum and bass', 'dnb', 'bass'],
     types: [{ value: 'waterPlane', weight: 3 }, { value: 'sphere', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.35 }, { value: 'particles', weight: 0.55 }, { value: 'blob', weight: 0.1 }],
+    renderers: [{ value: 'bars', weight: 0.45 }, { value: 'particles', weight: 0.3 }, { value: 'tunnel', weight: 0.15 }, { value: 'gradient', weight: 0.1 }],
     uSpeed: [0.8, 1.3], uStrength: [2.2, 3.2], uDensity: [1.4, 2],
     uFrequency: [5.5, 8], uAmplitude: [1.1, 1.5], reflection: [0.3, 0.6],
     brightness: [1.2, 1.6], grain: 'off', lightType: 'env', envPreset: 'city',
@@ -104,7 +107,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   hiphop: {
     match: ['hip hop', 'hip-hop', 'rap', 'trap', 'drill', 'grime', 'boom bap'],
     types: [{ value: 'plane', weight: 2 }, { value: 'waterPlane', weight: 2 }],
-    renderers: [{ value: 'gradient', weight: 0.5 }, { value: 'particles', weight: 0.2 }, { value: 'blob', weight: 0.3 }],
+    renderers: [{ value: 'bars', weight: 0.35 }, { value: 'blob', weight: 0.25 }, { value: 'gradient', weight: 0.4 }],
     uSpeed: [0.3, 0.55], uStrength: [3, 4], uDensity: [1, 1.5],
     uFrequency: [2, 3.5], uAmplitude: [1.5, 2], reflection: [0.1, 0.3],
     brightness: [0.8, 1.1], grain: 'on', lightType: '3d', envPreset: 'lobby',
@@ -113,7 +116,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   pop: {
     match: ['pop', 'k-pop', 'j-pop', 'boy band', 'girl group', 'idol'],
     types: [{ value: 'sphere', weight: 2 }, { value: 'waterPlane', weight: 2 }, { value: 'plane', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.5 }, { value: 'particles', weight: 0.35 }, { value: 'blob', weight: 0.15 }],
+    renderers: [{ value: 'particles', weight: 0.35 }, { value: 'gradient', weight: 0.4 }, { value: 'bars', weight: 0.15 }, { value: 'blob', weight: 0.1 }],
     uSpeed: [0.45, 0.75], uStrength: [1.8, 2.6], uDensity: [1.1, 1.6],
     uFrequency: [4, 6], uAmplitude: [1, 1.4], reflection: [0.2, 0.45],
     brightness: [1.2, 1.5], grain: 'off', lightType: 'env', envPreset: 'city',
@@ -122,7 +125,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   rnb: {
     match: ['r&b', 'rnb', 'soul', 'neo soul', 'funk', 'disco', 'motown'],
     types: [{ value: 'waterPlane', weight: 3 }, { value: 'sphere', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.5 }, { value: 'particles', weight: 0.15 }, { value: 'blob', weight: 0.35 }],
+    renderers: [{ value: 'ribbons', weight: 0.35 }, { value: 'blob', weight: 0.25 }, { value: 'gradient', weight: 0.4 }],
     uSpeed: [0.3, 0.55], uStrength: [1.4, 2.2], uDensity: [1, 1.4],
     uFrequency: [3, 4.5], uAmplitude: [1, 1.3], reflection: [0.35, 0.6],
     brightness: [1, 1.3], grain: 'off', lightType: 'env', envPreset: 'lobby',
@@ -131,7 +134,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   jazz: {
     match: ['jazz', 'blues', 'bossa', 'swing', 'bebop', 'lounge'],
     types: [{ value: 'waterPlane', weight: 3 }, { value: 'plane', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.45 }, { value: 'particles', weight: 0.15 }, { value: 'blob', weight: 0.4 }],
+    renderers: [{ value: 'ribbons', weight: 0.45 }, { value: 'blob', weight: 0.25 }, { value: 'gradient', weight: 0.3 }],
     uSpeed: [0.2, 0.4], uStrength: [1.2, 2], uDensity: [0.9, 1.3],
     uFrequency: [3, 5], uAmplitude: [0.9, 1.2], reflection: [0.4, 0.7],
     brightness: [0.9, 1.2], grain: 'on', lightType: 'env', envPreset: 'lobby',
@@ -140,7 +143,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   acoustic: {
     match: ['acoustic', 'folk', 'singer-songwriter', 'country', 'americana', 'bluegrass', 'indie folk'],
     types: [{ value: 'plane', weight: 3 }, { value: 'waterPlane', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.55 }, { value: 'particles', weight: 0.1 }, { value: 'blob', weight: 0.35 }],
+    renderers: [{ value: 'ribbons', weight: 0.35 }, { value: 'gradient', weight: 0.45 }, { value: 'blob', weight: 0.2 }],
     uSpeed: [0.15, 0.35], uStrength: [1, 1.8], uDensity: [0.8, 1.2],
     uFrequency: [3, 4.5], uAmplitude: [0.8, 1.1], reflection: [0.2, 0.4],
     brightness: [1.1, 1.4], grain: 'off', lightType: 'env', envPreset: 'dawn',
@@ -149,7 +152,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   classical: {
     match: ['classical', 'orchestra', 'piano', 'baroque', 'opera', 'symphony', 'chamber'],
     types: [{ value: 'waterPlane', weight: 2 }, { value: 'plane', weight: 2 }],
-    renderers: [{ value: 'gradient', weight: 0.45 }, { value: 'particles', weight: 0.15 }, { value: 'blob', weight: 0.4 }],
+    renderers: [{ value: 'ribbons', weight: 0.5 }, { value: 'gradient', weight: 0.3 }, { value: 'blob', weight: 0.2 }],
     uSpeed: [0.1, 0.3], uStrength: [0.8, 1.6], uDensity: [0.7, 1.1],
     uFrequency: [2.5, 4], uAmplitude: [0.7, 1], reflection: [0.4, 0.7],
     brightness: [1, 1.3], grain: 'off', lightType: 'env', envPreset: 'dawn',
@@ -158,7 +161,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   ambient: {
     match: ['ambient', 'chill', 'lo-fi', 'lofi', 'downtempo', 'shoegaze', 'dream', 'sleep', 'new age'],
     types: [{ value: 'sphere', weight: 2 }, { value: 'waterPlane', weight: 2 }],
-    renderers: [{ value: 'gradient', weight: 0.35 }, { value: 'particles', weight: 0.2 }, { value: 'blob', weight: 0.45 }],
+    renderers: [{ value: 'blob', weight: 0.4 }, { value: 'ribbons', weight: 0.3 }, { value: 'gradient', weight: 0.3 }],
     uSpeed: [0.1, 0.25], uStrength: [1, 1.8], uDensity: [0.8, 1.2],
     uFrequency: [2, 3.5], uAmplitude: [0.8, 1.2], reflection: [0.3, 0.6],
     brightness: [0.9, 1.2], grain: 'on', lightType: 'env', envPreset: 'dawn',
@@ -167,7 +170,7 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
   latin: {
     match: ['latin', 'reggaeton', 'salsa', 'cumbia', 'bachata', 'afrobeat', 'dancehall', 'reggae', 'samba'],
     types: [{ value: 'waterPlane', weight: 2 }, { value: 'sphere', weight: 1 }, { value: 'plane', weight: 1 }],
-    renderers: [{ value: 'gradient', weight: 0.45 }, { value: 'particles', weight: 0.4 }, { value: 'blob', weight: 0.15 }],
+    renderers: [{ value: 'particles', weight: 0.35 }, { value: 'bars', weight: 0.3 }, { value: 'gradient', weight: 0.35 }],
     uSpeed: [0.55, 0.9], uStrength: [2, 3], uDensity: [1.2, 1.8],
     uFrequency: [4.5, 6.5], uAmplitude: [1.1, 1.5], reflection: [0.25, 0.5],
     brightness: [1.2, 1.5], grain: 'off', lightType: 'env', envPreset: 'city',
@@ -177,9 +180,11 @@ export const GENRE_PRESETS: Record<string, GenrePreset> = {
 
 /** Fallback when nothing matches: the current Moodify lava-lamp feel */
 const DEFAULT_RENDERERS: Array<{ value: SceneRenderer; weight: number }> = [
-  { value: 'gradient', weight: 0.55 },
-  { value: 'particles', weight: 0.25 },
-  { value: 'blob', weight: 0.2 },
+  { value: 'gradient', weight: 0.45 },
+  { value: 'particles', weight: 0.2 },
+  { value: 'blob', weight: 0.15 },
+  { value: 'bars', weight: 0.1 },
+  { value: 'ribbons', weight: 0.1 },
 ]
 
 const DEFAULT_PRESET: GenrePreset = {

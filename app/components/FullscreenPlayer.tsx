@@ -7,6 +7,7 @@ import { RootState } from "@/lib/store"
 import { exitFullscreen } from "@/lib/features/spotifySlice"
 import { useEffect, useRef, useState } from "react"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
+import PixelDancers from "@/app/components/PixelDancers"
 import { Share2, X } from "lucide-react"
 import { usePathname } from "next/navigation"
 import PlayerControls from "@/app/components/PlayerControls"
@@ -68,6 +69,7 @@ export default function FullscreenPlayer() {
   return (
     <div ref={containerRef} className="fixed inset-0 z-[100] flex flex-col items-center justify-center">
       <LavaLampBackground palette={track.colourPalette} tempo={track.tempo} trackId={track.id} genres={track.genres} mood={track.mood} energy={track.energy} valence={track.valence} />
+      <PixelDancers genres={track.genres} tempo={track.tempo} trackId={track.id} />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-[110]">

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
 import Logo from "@/app/components/Logo"
+import PixelDancers from "@/app/components/PixelDancers"
 import { SpotifyTrack } from "@/app/utils/interfaces"
 import { Share2, X } from "lucide-react"
 import { useDispatch } from "react-redux"
@@ -136,6 +137,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
         energy={shown.energy}
         valence={shown.valence}
       />
+      <PixelDancers genres={shown.genres} tempo={shown.tempo} trackId={shown.id} />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">

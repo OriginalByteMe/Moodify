@@ -7,6 +7,12 @@ const nextConfig = {
 				hostname: 'i.scdn.co',
 				pathname: '/**',
 			},
+			// Local fixture/dev servers (visual lab, e2e tests)
+			{
+				protocol: 'http',
+				hostname: 'localhost',
+				pathname: '/**',
+			},
 		],
 	},
 };
