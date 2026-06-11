@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import LavaLampBackground from "@/app/components/ui/lavaLampBackground"
+import Logo from "@/app/components/Logo"
 import { SpotifyTrack } from "@/app/utils/interfaces"
 import { Share2, X } from "lucide-react"
 import { useDispatch } from "react-redux"
@@ -14,6 +15,15 @@ import { ThemeSwitch } from "@/app/components/ui/ThemeSwitch"
 import { useTheme } from "@/app/components/ThemeProvider"
 import NerdStats from "@/app/components/NerdStats"
 import { Button } from "@/components/ui/button"
+
+function safeParseArray(value: string): string[] | undefined {
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
 
 function normalizeTrack(t: any) {
   if (!t) return null
@@ -48,6 +58,8 @@ function normalizeTrack(t: any) {
     tempo: t.tempo,
     time_signature: t.time_signature,
     audio_features_status: t.audio_features_status,
+    genres: Array.isArray(t.genres) ? t.genres : typeof t.genres === 'string' ? safeParseArray(t.genres) : undefined,
+    mood: t.mood,
   }
 }
 
@@ -115,12 +127,20 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
   return (
     <div className={`relative min-h-screen overflow-hidden transition-all duration-300 ease-out ${entered && !leaving ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-      <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
+      <LavaLampBackground
+        palette={shown.colourPalette}
+        tempo={shown.tempo}
+        trackId={shown.id}
+        genres={shown.genres}
+        mood={shown.mood}
+        energy={shown.energy}
+        valence={shown.valence}
+      />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.svg" alt="Moodify" width={40} height={40} />
+          <Logo size={40} />
           <span className="text-white/90 font-semibold text-lg hidden sm:inline">Moodify</span>
         </Link>
         <div className="flex items-center gap-2">

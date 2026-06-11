@@ -39,6 +39,7 @@ Moodify is a Next.js application that extracts color palettes from Spotify album
 - `/api/data/collection/single` - Handles single track operations
 - `/api/data/album/bulk` - Handles bulk album data operations
 - `/api/data/palette-picker` - Manages color palette operations
+- `/api/preview/resolve` - Resolves playable preview URLs (spotify-preview-finder, then iTunes Search fallback)
 - `/api/track/[id]` - Individual track data endpoint
 - `/api/cache/revalidate` - Cache revalidation endpoint
 
@@ -46,7 +47,8 @@ Moodify is a Next.js application that extracts color palettes from Spotify album
 - Theme system with dark/light mode support
 - Reusable UI components in `app/components/ui/`
 - Search functionality with debounced input
-- Dynamic 3D background rendering using ShaderGradient (`app/components/ui/lavaLampBackground.tsx`)
+- Dynamic 3D background rendering using ShaderGradient (`app/components/ui/lavaLampBackground.tsx`), driven by the mood/genre scene engine in `lib/mood-visuals.ts`
+- Brand mark component (`app/components/Logo.tsx`) with gradient wordmark styles in `app/styles/globals.css`
 - Header component with conditional visibility (`app/components/Header.tsx`)
 - Fullscreen player with track visualization (`app/components/FullscreenPlayer.tsx`)
 - Preview player with audio controls (`app/components/PreviewPlayer.tsx`)
@@ -81,6 +83,11 @@ SPOTIFY_REFRESH_TOKEN - For authenticated requests
 
 ### 3D Visualization Features
 - WebGL-based shader gradients using `@shadergradient/react`
-- Dynamic background types (plane, waterPlane) based on track ID
-- Tempo-driven animation speed mapping (60-180 BPM → 0.2-1.0 speed)
-- Color synchronization between track palettes and 3D rendering
+- Scene engine (`lib/mood-visuals.ts`): genre families (rock, metal, EDM, hip-hop, pop, R&B, jazz, acoustic, classical, ambient, latin) each define a visual language; multi-genre tracks blend presets proportionally
+- Mood labels from the backend mood engine bias speed/turbulence/brightness; tempo/energy/valence fine-tune
+- Seeded per track with a per-mount variation salt, so each song stays recognisable but never renders the same scene twice
+- Track genres come from batched Spotify artist lookups (`lib/spotify.ts`); mood comes from backend `POST /analysis/track`
+
+### Mood Detection
+- See `docs/MOOD_WORKFLOW.md` for the full mood-derivation workflow and upgrade paths (lyrics sentiment, Last.fm tags, key/mode detection, pretrained taggers)
+- `/api/data/collection/bulk` enriches tracks with audio features via the Modal analyzer, falling back to the backend's first-party `/analysis/track`

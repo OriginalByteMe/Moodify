@@ -5,6 +5,39 @@ import { trackTag } from '@/lib/get-track-cached'
 import type { SpotifyTrack } from '@/app/utils/interfaces';
 
 const ANALYZER_URL = process.env.AUDIO_ANALYZER_URL || 'https://originalbyteme--ai-audio-features-web-app.modal.run';
+const BACKEND_URL = process.env.NEXT_PUBLIC_MOODIFY_BACKEND_URL;
+
+/**
+ * Fallback analyzer: the Moodify backend's first-party preview analysis
+ * (POST /analysis/track). Maps its response onto the track field shape.
+ */
+async function analyzeWithBackend(previewUrl: string): Promise<Partial<SpotifyTrack> | null> {
+  if (!BACKEND_URL) return null;
+  try {
+    const res = await fetch(`${BACKEND_URL}/analysis/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // persist=false: the bulk upload below stores the fields itself
+      body: JSON.stringify({ previewUrl, persist: false }),
+      next: { revalidate: 0 },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const features = data?.features ?? {};
+    return {
+      tempo: features.tempo ?? undefined,
+      energy: features.energy,
+      loudness: features.loudness,
+      danceability: features.danceability,
+      valence: features.valence,
+      acousticness: features.acousticness,
+      mood: data?.mood?.mood,
+    } as Partial<SpotifyTrack>;
+  } catch (err) {
+    console.warn('[Analyzer] Backend analysis failed', err);
+    return null;
+  }
+}
 
 async function analyzePreviewUrl(previewUrl?: string | null) {
   if (!previewUrl) return null;
@@ -13,15 +46,15 @@ async function analyzePreviewUrl(previewUrl?: string | null) {
     const res = await fetch(url, { next: { revalidate: 0 } });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      console.warn('[Analyzer] Non-OK response', res.status, text);
-      return null;
+      console.warn('[Analyzer] Non-OK response, falling back to backend analyzer', res.status, text);
+      return analyzeWithBackend(previewUrl);
     }
     const data = await res.json();
     // Expecting shape compatible with backend fields
     return data as Partial<SpotifyTrack>;
   } catch (err) {
-    console.warn('[Analyzer] Failed to analyze preview URL', err);
-    return null;
+    console.warn('[Analyzer] Failed to analyze preview URL, falling back to backend analyzer', err);
+    return analyzeWithBackend(previewUrl);
   }
 }
 
@@ -67,6 +100,7 @@ export async function POST(request: NextRequest) {
             tempo: features.tempo,
             time_signature: features.time_signature,
             duration_ms: features.duration_ms ?? t.duration_ms,
+            mood: features.mood ?? t.mood,
             audio_features_status: 'imported',
           } as SpotifyTrack;
         }
@@ -93,7 +127,7 @@ export async function POST(request: NextRequest) {
             if (original.previewUrl !== undefined) payload.previewUrl = original.previewUrl;
             // Send audio features if present
             const keys: (keyof SpotifyTrack)[] = [
-              'danceability','energy','key','loudness','mode','speechiness','acousticness','instrumentalness','liveness','valence','tempo','time_signature','duration_ms','audio_features_status'
+              'danceability','energy','key','loudness','mode','speechiness','acousticness','instrumentalness','liveness','valence','tempo','time_signature','duration_ms','audio_features_status','mood','genres'
             ];
             for (const k of keys) {
               const val = original[k];

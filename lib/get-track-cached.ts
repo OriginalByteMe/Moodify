@@ -41,6 +41,12 @@ function normalizeTrack(t: any): SpotifyTrack | null {
     tempo: t.tempo,
     time_signature: t.time_signature,
     audio_features_status: t.audio_features_status,
+    genres: Array.isArray(t.genres)
+      ? t.genres
+      : typeof t.genres === 'string'
+        ? (() => { try { const g = JSON.parse(t.genres); return Array.isArray(g) ? g : undefined } catch { return undefined } })()
+        : undefined,
+    mood: t.mood ?? undefined,
   }
 }
 

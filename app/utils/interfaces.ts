@@ -63,6 +63,9 @@ export interface SpotifyTrack {
   time_signature?: number;
   track_genre?: string;
   audio_features_status?: 'unprocessed' | 'processing' | 'processed' | 'failed' | 'imported';
+  // Artist genres from Spotify and the derived mood (backend mood engine)
+  genres?: string[];
+  mood?: string;
 }
 
 export interface SpotifyAlbum {

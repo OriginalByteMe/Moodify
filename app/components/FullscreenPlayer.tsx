@@ -67,7 +67,7 @@ export default function FullscreenPlayer() {
 
   return (
     <div ref={containerRef} className="fixed inset-0 z-[100] flex flex-col items-center justify-center">
-      <LavaLampBackground palette={track.colourPalette} tempo={track.tempo} trackId={track.id} />
+      <LavaLampBackground palette={track.colourPalette} tempo={track.tempo} trackId={track.id} genres={track.genres} mood={track.mood} energy={track.energy} valence={track.valence} />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-[110]">

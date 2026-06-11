@@ -140,6 +140,31 @@ body.dark {
   }
 }
 
+/* Moodify brand gradient text (violet -> orange -> cyan, slow pan) */
+.moodify-gradient-text {
+  background: linear-gradient(100deg, #a78bfa, #ea580c 35%, #22d3ee 70%, #a78bfa);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: moodify-gradient-pan 9s ease-in-out infinite;
+}
+
+@keyframes moodify-gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Soft entrance used on the home hero */
+.animate-fadeIn {
+  animation: moodify-fade-in 0.7s ease-out both;
+}
+
+@keyframes moodify-fade-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Text backdrop utilities for improved readability */
 .text-backdrop-light {
   background: rgba(255, 255, 255, 0.85);
