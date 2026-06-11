@@ -84,6 +84,7 @@ SPOTIFY_REFRESH_TOKEN - For authenticated requests
 ### 3D Visualization Features
 - WebGL-based shader gradients using `@shadergradient/react`
 - Scene engine (`lib/mood-visuals.ts`): genre families (rock, metal, EDM, hip-hop, pop, R&B, jazz, acoustic, classical, ambient, latin) each define a visual language; multi-genre tracks blend presets proportionally
+- Three background renderers, picked per scene (seeded, genre-weighted): ShaderGradient surfaces, a BPM-synced particle field (`app/components/ui/backgrounds/ParticleField.tsx`), and a noise-displaced morph blob (`app/components/ui/backgrounds/MorphBlob.tsx`); custom renderers pulse to the track tempo and are lazy-loaded
 - Mood labels from the backend mood engine bias speed/turbulence/brightness; tempo/energy/valence fine-tune
 - Seeded per track with a per-mount variation salt, so each song stays recognisable but never renders the same scene twice
 - Track genres come from batched Spotify artist lookups (`lib/spotify.ts`); mood comes from backend `POST /analysis/track`
