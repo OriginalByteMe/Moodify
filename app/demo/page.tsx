@@ -61,7 +61,7 @@ export default function DemoPage() {
       <div className="relative z-10 p-6 text-white">
         <h1 className="text-2xl font-bold drop-shadow">Moodify visual lab</h1>
         <p className="text-sm opacity-80 drop-shadow">renderer={params.renderer} · genre={params.genre} · {params.bpm} BPM</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div data-dancer-platform className="mt-3 flex flex-wrap gap-2">
           {RENDERERS.map((r) => (
             <a key={r} href={`/demo?renderer=${r}&genre=${params.genre}&bpm=${params.bpm}`}
                className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur ${params.renderer === r ? 'bg-white text-black' : 'bg-black/40 text-white'}`}>
@@ -69,7 +69,7 @@ export default function DemoPage() {
             </a>
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div data-dancer-platform className="mt-2 flex flex-wrap gap-2">
           {Object.keys(GENRES).map((g) => (
             <a key={g} href={`/demo?renderer=${params.renderer}&genre=${g}&bpm=${params.bpm}`}
                className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur ${params.genre === g ? 'bg-white text-black' : 'bg-black/40 text-white'}`}>

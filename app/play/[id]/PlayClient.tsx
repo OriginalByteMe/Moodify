@@ -174,7 +174,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
       {/* Center content */}
       <div className="relative z-10 max-w-3xl w-full px-6 text-center mx-auto pt-24 pb-40">
-        <div className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
+        <div data-dancer-platform className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
           theme === 'dark' ? 'border-white/20' : 'border-gray-900/20'
         }`}>
           <Image src={(shown?.albumCover) || '/placeholder.svg?height=300&width=300'} alt={shown?.title || ''} width={320} height={320} className="w-full h-full object-cover" />
@@ -194,7 +194,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
           <div className="grid grid-cols-4 gap-3">
             {(shown?.colourPalette || []).slice(0,5).map((c: number[], i: number) => (
               <div key={i} className="flex flex-col items-center gap-2">
-                <div className={`w-14 h-14 rounded-full shadow-lg border-2 ${
+                <div data-dancer-platform className={`w-14 h-14 rounded-full shadow-lg border-2 ${
                   theme === 'dark' ? 'border-white/30' : 'border-gray-900/30'
                 }`} style={{ backgroundColor: `rgb(${c[0]}, ${c[1]}, ${c[2]})` }} />
                 <span className={`text-[10px] font-mono ${
@@ -208,6 +208,7 @@ export default function PlayClient({ trackId }: { trackId: string }) {
         {/* Nerd stats toggle */}
         <div className="mt-4">
           <button
+            data-dancer-platform
             onClick={() => setShowStats(s => !s)}
             className={`px-4 py-2 rounded-full backdrop-blur font-medium transition-colors ${
               theme === 'dark'
@@ -231,11 +232,13 @@ export default function PlayClient({ trackId }: { trackId: string }) {
 
       {/* Big player pill bottom center */}
       <div className="absolute bottom-10 left-0 right-0 flex justify-center z-20">
-        <PlayerControls
-          track={shown}
-          variant="large"
-          autoPlayOnMount={true}
-        />
+        <div data-dancer-platform>
+          <PlayerControls
+            track={shown}
+            variant="large"
+            autoPlayOnMount={true}
+          />
+        </div>
       </div>
 
       {copied && copiedUrl && (

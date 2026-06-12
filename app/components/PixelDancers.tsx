@@ -4,9 +4,13 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import { matchGenres, createRng, hashString } from '@/lib/mood-visuals'
 
 /**
- * Pixelated stick-figure dancers that live on the play screen, dance to the
- * track's BPM in genre-appropriate costumes, and can be grabbed, thrown and
- * parked anywhere on the UI with the mouse.
+ * Pixelated stick-figure dancers that live across the whole screen, dance to
+ * the track's BPM in genre-appropriate costumes, and can be grabbed, thrown
+ * and parked anywhere with the mouse.
+ *
+ * Any DOM element marked with `data-dancer-platform` becomes solid ground:
+ * dancers rain in from above, land on album art / palette swatches / the
+ * player pill, bounce off them when thrown hard, and walk off the edges.
  *
  * Sprites are hand-drawn 12x16 pixel maps rendered to data URLs (one canvas
  * per costume+frame, cached), animated by swapping frames on half-beats.
@@ -89,6 +93,25 @@ const FRAMES: Record<string, string[]> = {
     '............',
     '............',
   ],
+  // Held by the scruff: arms flailing up, legs dangling
+  carried: [
+    '.S..HHHH..S.',
+    'S...HHHH...S',
+    '....SSSS....',
+    '....SSSS....',
+    '..BBBBBBBB..',
+    '..BBBBBBBB..',
+    '..BBBBBBBB..',
+    '..BBBBBBBB..',
+    '....LLLL....',
+    '...LL..LL...',
+    '...LL...LL..',
+    '..LL.....LL.',
+    '..LL......LL',
+    '............',
+    '............',
+    '............',
+  ],
 }
 
 type HatStyle = 'none' | 'mohawk' | 'cap' | 'headband'
@@ -136,7 +159,11 @@ const COSTUMES: Record<string, Omit<Costume, 'skin'>> = {
 const SPRITE_W = 12
 const SPRITE_H = 16
 const SCALE = 4
+const W = SPRITE_W * SCALE
+const H = SPRITE_H * SCALE
 const DANCER_COUNT = 5
+const GRAVITY = 1500
+const BOUNCE_SPEED = 520 // landing faster than this bounces instead of sticking
 
 function renderFrameDataUrl(frameName: keyof typeof FRAMES, costume: Costume, flip: boolean): string {
   const canvas = document.createElement('canvas')
@@ -163,31 +190,65 @@ function renderFrameDataUrl(frameName: keyof typeof FRAMES, costume: Costume, fl
   return canvas.toDataURL()
 }
 
+interface Surface {
+  x1: number
+  x2: number
+  top: number
+  isFloor: boolean
+}
+
+type Mode = 'walk' | 'fall' | 'drag'
+
 interface DancerState {
   el: HTMLImageElement | null
   costume: Costume
   frames: Record<string, { normal: string; flipped: string }>
   x: number
-  floorY: number
+  y: number
   vx: number
   vy: number
   dir: 1 | -1
+  mode: Mode
   phaseOffset: number
-  dragging: boolean
-  falling: boolean
   lastFrameKey: string
+}
+
+/** All solid ground: marked UI elements plus the bottom of the viewport */
+function scanSurfaces(): Surface[] {
+  const surfaces: Surface[] = []
+  const nodes = document.querySelectorAll('[data-dancer-platform]')
+  nodes.forEach((node) => {
+    const rect = node.getBoundingClientRect()
+    if (rect.width < 24 || rect.top < 8 || rect.top > window.innerHeight - 40) return
+    surfaces.push({ x1: rect.left, x2: rect.right, top: rect.top, isFloor: false })
+  })
+  surfaces.push({ x1: 0, x2: window.innerWidth, top: window.innerHeight - 16, isFloor: true })
+  return surfaces
+}
+
+function surfaceUnderfoot(surfaces: Surface[], d: DancerState): Surface | null {
+  const cx = d.x + W / 2
+  const feet = d.y + H
+  let best: Surface | null = null
+  for (const s of surfaces) {
+    if (cx >= s.x1 - 8 && cx <= s.x2 + 8 && Math.abs(feet - s.top) < 26) {
+      if (!best || s.top < best.top) best = s
+    }
+  }
+  return best
 }
 
 type Props = {
   genres?: string[]
   tempo?: number
   trackId?: string
+  zIndex?: number
 }
 
-export default function PixelDancers({ genres, tempo, trackId }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
+export default function PixelDancers({ genres, tempo, trackId, zIndex = 30 }: Props) {
   const dancersRef = useRef<DancerState[]>([])
   const elsRef = useRef<Array<HTMLImageElement | null>>([])
+  const surfacesRef = useRef<Surface[]>([])
   const dragRef = useRef<{ index: number; offsetX: number; offsetY: number; lastX: number; lastY: number; lastT: number; vx: number; vy: number } | null>(null)
 
   const bps = useMemo(() => {
@@ -212,9 +273,8 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const rngs = crew.map((c) => createRng(c.rngSeed))
     dancersRef.current = crew.map((c, i) => {
-      const rng = rngs[i]
+      const rng = createRng(c.rngSeed)
       const frames: DancerState['frames'] = {}
       for (const name of Object.keys(FRAMES)) {
         frames[name] = {
@@ -226,17 +286,23 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
         el: elsRef.current[i] ?? null,
         costume: c.costume,
         frames,
-        x: 40 + rng() * Math.max(200, window.innerWidth - 140),
-        floorY: window.innerHeight - 110 - rng() * 30,
+        // Rain in from different heights so they land all over the UI
+        x: 30 + rng() * Math.max(200, window.innerWidth - 120),
+        y: -H - rng() * window.innerHeight * 0.6,
         vx: (18 + rng() * 26) * (rng() > 0.5 ? 1 : -1),
         vy: 0,
         dir: rng() > 0.5 ? 1 : -1,
+        mode: 'fall' as Mode,
         phaseOffset: Math.floor(rng() * 4),
-        dragging: false,
-        falling: false,
         lastFrameKey: '',
       }
     })
+
+    // Platform rects change with layout; rescan cheaply on an interval
+    surfacesRef.current = scanSurfaces()
+    const rescan = () => { surfacesRef.current = scanSurfaces() }
+    const scanTimer = setInterval(rescan, 700)
+    window.addEventListener('resize', rescan)
 
     let raf = 0
     let lastT = performance.now() / 1000
@@ -247,56 +313,101 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
       const halfBeats = t * bps * 2
       const beatPhase = (t * bps) % 1
       const thump = Math.exp(-4 * beatPhase)
+      const surfaces = surfacesRef.current
 
       for (const d of dancersRef.current) {
         if (!d.el) continue
-        if (!d.dragging) {
-          if (d.falling) {
-            d.vy += 1400 * dt
-            d.floorY += d.vy * dt
+
+        if (d.mode === 'fall') {
+          const prevFeet = d.y + H
+          d.vy += GRAVITY * dt
+          d.y += d.vy * dt
+          d.x += d.vx * dt
+          d.x = Math.max(0, Math.min(window.innerWidth - W, d.x))
+          const feet = d.y + H
+          const cx = d.x + W / 2
+          if (d.vy > 0) {
+            let landed: Surface | null = null
+            for (const s of surfaces) {
+              if (cx >= s.x1 - 8 && cx <= s.x2 + 8 && prevFeet <= s.top + 4 && feet >= s.top) {
+                if (!landed || s.top < landed.top) landed = s
+              }
+            }
+            if (landed) {
+              d.y = landed.top - H
+              if (d.vy > BOUNCE_SPEED) {
+                // Hard landing: bounce off the element
+                d.vy = -d.vy * 0.42
+                d.vx *= 0.82
+              } else {
+                d.mode = 'walk'
+                d.vy = 0
+                // Small perches (swatches, buttons): dance in place
+                if (!landed.isFloor && landed.x2 - landed.x1 < 110) d.vx = 0
+                else if (d.vx === 0) d.vx = 22 * (Math.random() > 0.5 ? 1 : -1)
+              }
+            }
+          }
+          if (d.y > window.innerHeight) {
+            // Safety: fell past the floor somehow, reset to the floor
+            d.y = window.innerHeight - 16 - H
+            d.mode = 'walk'
+            d.vy = 0
+          }
+        } else if (d.mode === 'walk') {
+          const current = surfaceUnderfoot(surfaces, d)
+          if (!current) {
+            d.mode = 'fall'
+            d.vy = 0
+          } else {
+            d.y = current.top - H
             d.x += d.vx * dt
-            const ground = window.innerHeight - 80
-            if (d.floorY >= ground) {
-              d.floorY = ground
-              d.falling = false
+            const cx = d.x + W / 2
+            if (current.isFloor) {
+              if (d.x < 6 || d.x > window.innerWidth - W - 6) d.vx *= -1
+            } else if (cx < current.x1 - 6 || cx > current.x2 + 6) {
+              // Strolled off the edge of a UI element
+              d.mode = 'fall'
               d.vy = 0
             }
-          } else {
-            // Wander, turn at viewport edges (or randomly)
-            d.x += d.vx * dt
-            if (d.x < 10 || d.x > window.innerWidth - SPRITE_W * SCALE - 10) {
-              d.vx *= -1
-            }
-            d.dir = d.vx >= 0 ? 1 : -1
+            if (d.vx !== 0) d.dir = d.vx >= 0 ? 1 : -1
           }
         }
+        // 'drag' mode: position comes from pointer events
 
         const seq = d.costume.sequence
         const frameIdx = Math.floor(halfBeats / d.costume.stepDiv + d.phaseOffset) % seq.length
-        const frameName = seq[frameIdx]
-        const bounce = d.dragging || d.falling ? 0 : Math.abs(Math.sin(Math.PI * (t * bps + d.phaseOffset * 0.25))) * d.costume.bounce * (0.6 + 0.4 * thump)
+        const frameName = d.mode === 'drag' ? 'carried' : d.mode === 'fall' ? 'jump' : seq[frameIdx]
+        const bounce = d.mode === 'walk'
+          ? Math.abs(Math.sin(Math.PI * (t * bps + d.phaseOffset * 0.25))) * d.costume.bounce * (0.6 + 0.4 * thump)
+          : 0
+        // Carried dancers wiggle in protest
+        const wiggle = d.mode === 'drag' ? Math.sin(t * 14) * 9 : 0
         const frameKey = `${frameName}-${d.dir}`
         if (frameKey !== d.lastFrameKey) {
           d.el.src = d.dir === 1 ? d.frames[frameName].normal : d.frames[frameName].flipped
           d.lastFrameKey = frameKey
         }
-        d.el.style.transform = `translate(${d.x}px, ${d.floorY - bounce}px)`
+        d.el.style.transform = `translate(${d.x}px, ${d.y - bounce}px) rotate(${wiggle}deg)`
       }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearInterval(scanTimer)
+      window.removeEventListener('resize', rescan)
+    }
   }, [crew, bps])
 
   const onPointerDown = (index: number) => (e: React.PointerEvent<HTMLImageElement>) => {
     const d = dancersRef.current[index]
     if (!d) return
-    d.dragging = true
-    d.falling = false
+    d.mode = 'drag'
     dragRef.current = {
       index,
       offsetX: e.clientX - d.x,
-      offsetY: e.clientY - d.floorY,
+      offsetY: e.clientY - d.y,
       lastX: e.clientX,
       lastY: e.clientY,
       lastT: performance.now() / 1000,
@@ -310,7 +421,7 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
     const drag = dragRef.current
     if (!drag) return
     const d = dancersRef.current[drag.index]
-    if (!d?.dragging) return
+    if (d?.mode !== 'drag') return
     const t = performance.now() / 1000
     const dt = Math.max(1e-3, t - drag.lastT)
     drag.vx = (e.clientX - drag.lastX) / dt
@@ -319,7 +430,7 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
     drag.lastY = e.clientY
     drag.lastT = t
     d.x = e.clientX - drag.offsetX
-    d.floorY = e.clientY - drag.offsetY
+    d.y = e.clientY - drag.offsetY
   }
 
   const onPointerUp = (e: React.PointerEvent<HTMLImageElement>) => {
@@ -328,21 +439,41 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
     const d = dancersRef.current[drag.index]
     dragRef.current = null
     if (!d) return
-    d.dragging = false
-    // Thrown hard -> tumble with gravity; placed gently -> dance right there
-    const speed = Math.hypot(drag.vx, drag.vy)
-    if (speed > 350) {
-      d.falling = true
-      d.vx = Math.max(-280, Math.min(280, drag.vx * 0.5))
-      d.vy = Math.max(-500, Math.min(300, drag.vy * 0.4))
-    } else {
-      d.vx = (Math.abs(d.vx) || 22) * (d.dir || 1)
+    // Always fall on release: a gentle drop lands on whatever is below
+    // (often the element they were placed on), a hard throw tumbles & bounces
+    // Velocity from the last pointer movement — but if the pointer has been
+    // still, this is a gentle placement, not a throw
+    const idleFor = performance.now() / 1000 - drag.lastT
+    const throwVx = idleFor > 0.12 ? 0 : drag.vx
+    const throwVy = idleFor > 0.12 ? 0 : drag.vy
+    const gentle = Math.hypot(throwVx, throwVy) < 250
+
+    // Gentle placement near a platform: snap onto it so "put the dancer on
+    // the play button" works even if the grip was a little off
+    if (gentle) {
+      const cx = d.x + W / 2
+      const feet = d.y + H
+      const near = surfacesRef.current.find(
+        (s) => cx >= s.x1 - 8 && cx <= s.x2 + 8 && feet - s.top >= -10 && feet - s.top <= 30
+      )
+      if (near) {
+        d.y = near.top - H
+        d.mode = 'walk'
+        d.vy = 0
+        d.vx = !near.isFloor && near.x2 - near.x1 < 110 ? 0 : 22 * (d.dir || 1)
+        ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+        return
+      }
     }
+
+    d.mode = 'fall'
+    d.vx = Math.max(-320, Math.min(320, throwVx * 0.5))
+    d.vy = Math.max(-560, Math.min(400, throwVy * 0.4))
     ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
   }
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-30 pointer-events-none" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none" style={{ zIndex }} aria-hidden="true">
       {crew.map((_, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -358,8 +489,8 @@ export default function PixelDancers({ genres, tempo, trackId }: Props) {
           onPointerUp={onPointerUp}
           className="absolute top-0 left-0 pointer-events-auto cursor-grab active:cursor-grabbing select-none"
           style={{
-            width: SPRITE_W * SCALE,
-            height: SPRITE_H * SCALE,
+            width: W,
+            height: H,
             imageRendering: 'pixelated',
             willChange: 'transform',
             filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.35))',

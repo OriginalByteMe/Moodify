@@ -69,7 +69,7 @@ export default function FullscreenPlayer() {
   return (
     <div ref={containerRef} className="fixed inset-0 z-[100] flex flex-col items-center justify-center">
       <LavaLampBackground palette={track.colourPalette} tempo={track.tempo} trackId={track.id} genres={track.genres} mood={track.mood} energy={track.energy} valence={track.valence} />
-      <PixelDancers genres={track.genres} tempo={track.tempo} trackId={track.id} />
+      <PixelDancers genres={track.genres} tempo={track.tempo} trackId={track.id} zIndex={120} />
 
       {/* Top bar */}
       <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-[110]">
@@ -106,7 +106,7 @@ export default function FullscreenPlayer() {
 
       {/* Center content */}
       <div className="relative z-[110] max-w-3xl w-full px-6 text-center mt-12 ">
-        <div className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
+        <div data-dancer-platform className={`mx-auto w-40 h-40 rounded-2xl overflow-hidden shadow-2xl border ${
           theme === 'dark' ? 'border-white/20' : 'border-gray-900/20'
         }`}>
           <Image src={track.albumCover || '/placeholder.svg?height=300&width=300'} alt={track.title} width={320} height={320} className="w-full h-full object-cover" />
