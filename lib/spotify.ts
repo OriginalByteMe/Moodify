@@ -9,6 +9,58 @@ import previewFinder from 'spotify-preview-finder';
 let accessToken: string | null = null;
 let tokenExpiration = 0;
 
+// Artist genres rarely change; cache them per server instance for a day.
+const GENRE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const artistGenreCache = new Map<string, { genres: string[]; ts: number }>();
+
+/**
+ * Fetch genres for a set of artist IDs, batched (50 per request) and cached.
+ * Spotify only exposes genres on artists, not tracks, so this is how tracks
+ * get genre data for mood-driven visuals.
+ */
+async function getArtistGenres(token: string, artistIds: string[]): Promise<Map<string, string[]>> {
+	const result = new Map<string, string[]>();
+	const missing: string[] = [];
+	const now = Date.now();
+	for (const id of Array.from(new Set(artistIds.filter(Boolean)))) {
+		const cached = artistGenreCache.get(id);
+		if (cached && now - cached.ts < GENRE_CACHE_TTL_MS) {
+			result.set(id, cached.genres);
+		} else {
+			missing.push(id);
+		}
+	}
+	for (let i = 0; i < missing.length; i += 50) {
+		const batch = missing.slice(i, i + 50);
+		try {
+			const response = await fetch(`https://api.spotify.com/v1/artists?ids=${batch.join(',')}`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			if (!response.ok) continue;
+			const data = await response.json();
+			for (const artist of data?.artists ?? []) {
+				if (!artist?.id) continue;
+				const genres: string[] = Array.isArray(artist.genres) ? artist.genres : [];
+				artistGenreCache.set(artist.id, { genres, ts: now });
+				result.set(artist.id, genres);
+			}
+		} catch (error) {
+			console.warn('[Spotify] Artist genre fetch failed for batch', { size: batch.length, error: (error as Error).message });
+		}
+	}
+	return result;
+}
+
+/** Union of the genres of a track's artists, deduped and capped */
+function genresForTrack(item: any, genreMap: Map<string, string[]>): string[] {
+	const ids: string[] = Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.id).filter(Boolean) : [];
+	const genres = new Set<string>();
+	for (const id of ids) {
+		for (const genre of genreMap.get(id) ?? []) genres.add(genre);
+	}
+	return Array.from(genres).slice(0, 10);
+}
+
 async function getAccessToken() {
 	// Check if we have a valid token
 	if (accessToken && tokenExpiration > Date.now()) {
@@ -60,6 +112,15 @@ export async function searchSpotify(query: string, offset: number = 0, limit: nu
 		const data = await response.json();
 		const resultKey = type === 'album' ? 'albums' : 'tracks';
 		const results = data[resultKey];
+
+		// Enrich track search results with artist genres (one batched call)
+		if (type !== 'album' && Array.isArray(results?.items)) {
+			const artistIds = results.items.flatMap((item: any) =>
+				Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.id).filter(Boolean) : []
+			);
+			const genreMap = await getArtistGenres(token!, artistIds);
+			results.items = results.items.map((item: any) => ({ ...item, genres: genresForTrack(item, genreMap) }));
+		}
 
 		// Enrich track search results with previewUrl using spotify-preview-finder
 		if (type !== 'album' && Array.isArray(results?.items)) {
@@ -164,6 +225,13 @@ export async function getTrackById(trackId: string) {
     })
     if (!response.ok) throw new Error(`Failed to fetch track ${trackId}`)
     const item = await response.json()
+    // Attach artist genres for mood-driven visuals
+    let genres: string[] = []
+    try {
+      const artistIds: string[] = Array.isArray(item?.artists) ? item.artists.map((a: any) => a?.id).filter(Boolean) : []
+      const genreMap = await getArtistGenres(token!, artistIds)
+      genres = genresForTrack(item, genreMap)
+    } catch {}
     // Try to enrich previewUrl if missing
     let previewUrl: string | null = item?.preview_url ?? null
     if (!previewUrl) {
@@ -179,7 +247,7 @@ export async function getTrackById(trackId: string) {
         }
       } catch {}
     }
-    return { ...item, previewUrl }
+    return { ...item, previewUrl, genres }
   } catch (e) {
     console.error('Error fetching track by id:', e)
     throw e

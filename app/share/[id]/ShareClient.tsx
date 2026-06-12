@@ -46,6 +46,8 @@ function normalizeTrack(t: any) {
     tempo: t.tempo,
     time_signature: t.time_signature,
     audio_features_status: t.audio_features_status,
+    genres: Array.isArray(t.genres) ? (t.genres as string[]) : undefined,
+    mood: typeof t.mood === 'string' ? t.mood : undefined,
   }
 }
 
@@ -71,7 +73,7 @@ export default function ShareClient({ track }: { track: SpotifyTrack }) {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} />
+      <LavaLampBackground palette={shown.colourPalette} tempo={shown.tempo} trackId={shown.id} genres={shown.genres} mood={shown.mood} energy={shown.energy} valence={shown.valence} />
       {/* Top-left logo and CTA */}
       <div className="absolute top-4 left-4 z-20 flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2">

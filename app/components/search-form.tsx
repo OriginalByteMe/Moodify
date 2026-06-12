@@ -80,12 +80,12 @@ export function SearchForm() {
 		<div className='w-full max-w-3xl mx-auto'>
 			{/* Search Type Toggle */}
 			<div className='flex justify-center mb-4'>
-				<div className='inline-flex rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md p-1 shadow-lg'>
+				<div className='inline-flex rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md p-1 shadow-lg ring-1 ring-white/20 dark:ring-white/10'>
 					<button
 						onClick={() => handleSearchTypeChange('track')}
-						className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+						className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
 							searchType === 'track'
-								? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-md'
+								? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md scale-105'
 								: 'text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white'
 						}`}
 					>
@@ -94,9 +94,9 @@ export function SearchForm() {
 					</button>
 					<button
 						onClick={() => handleSearchTypeChange('album')}
-						className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+						className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
 							searchType === 'album'
-								? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-md'
+								? 'bg-gradient-to-r from-orange-500 to-fuchsia-500 text-white shadow-md scale-105'
 								: 'text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white'
 						}`}
 					>
@@ -115,7 +115,7 @@ export function SearchForm() {
 					placeholder={searchType === 'track' ? 'Search for songs and artists...' : 'Search for albums...'}
 					value={query}
 					onChange={e => setQuery(e.target.value)}
-					className='pl-10 text-black dark:text-white placeholder:text-zinc-500 dark:placeholder:text-zinc-400 h-12 rounded-full backdrop-blur-md bg-white/80 dark:bg-black/80 border-transparent focus:border-blue-500 focus-visible:ring-blue-500/20 shadow-lg'
+					className='pl-10 text-black dark:text-white placeholder:text-zinc-500 dark:placeholder:text-zinc-400 h-14 text-base rounded-full backdrop-blur-md bg-white/80 dark:bg-black/70 border border-white/40 dark:border-white/10 focus:border-violet-400 focus-visible:ring-violet-500/30 shadow-xl transition-shadow hover:shadow-2xl'
 				/>
 			</div>
 

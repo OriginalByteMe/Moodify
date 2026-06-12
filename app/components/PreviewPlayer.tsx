@@ -34,10 +34,32 @@ export function usePreviewPlayer() {
   return ctx
 }
 
+/**
+ * Ask the server to find a playable preview (spotify-preview-finder, then
+ * iTunes). Used when a track has no previewUrl or its URL fails to load.
+ */
+async function resolvePreviewUrl(track: SpotifyTrack): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      title: track.title ?? "",
+      artist: track.artists?.[0] ?? "",
+      id: track.id ?? "",
+    })
+    const res = await fetch(`/api/preview/resolve?${params.toString()}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    return typeof data?.previewUrl === "string" ? data.previewUrl : null
+  } catch {
+    return null
+  }
+}
+
 export function PreviewPlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const listenersAttachedRef = useRef(false)
-  const handlersRef = useRef<{ onLoaded?: () => void; onTime?: () => void; onEnd?: () => void; onPause?: () => void; onPlay?: () => void }>({})
+  const handlersRef = useRef<{ onLoaded?: () => void; onTime?: () => void; onEnd?: () => void; onPause?: () => void; onPlay?: () => void; onError?: () => void }>({})
+  const currentTrackRef = useRef<SpotifyTrack | null>(null)
+  const recoveryAttemptedRef = useRef<Set<string>>(new Set())
   const [currentTrack, setCurrentTrack] = useState<SpotifyTrack | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [duration, setDuration] = useState(0)
@@ -53,23 +75,41 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
     const onEnd = () => setIsPlaying(false)
     const onPause = () => setIsPlaying(false)
     const onPlay = () => setIsPlaying(true)
+    // If a stored preview URL has gone stale (404/CORS/expired CDN link),
+    // try resolving a fresh one once per track and retry playback.
+    const onError = () => {
+      const track = currentTrackRef.current
+      if (!track?.id || recoveryAttemptedRef.current.has(track.id)) return
+      recoveryAttemptedRef.current.add(track.id)
+      void resolvePreviewUrl(track).then((url) => {
+        if (!url || !audioRef.current || currentTrackRef.current?.id !== track.id) return
+        const recovered = { ...track, previewUrl: url }
+        currentTrackRef.current = recovered
+        setCurrentTrack(recovered)
+        audioRef.current.src = url
+        audioRef.current.currentTime = 0
+        void audioRef.current.play().catch(() => {})
+      })
+    }
     audioRef.current.addEventListener("loadedmetadata", onLoaded)
     audioRef.current.addEventListener("timeupdate", onTime)
     audioRef.current.addEventListener("ended", onEnd)
     audioRef.current.addEventListener("pause", onPause)
     audioRef.current.addEventListener("play", onPlay)
-    handlersRef.current = { onLoaded, onTime, onEnd, onPause, onPlay }
+    audioRef.current.addEventListener("error", onError)
+    handlersRef.current = { onLoaded, onTime, onEnd, onPause, onPlay, onError }
     listenersAttachedRef.current = true
   }
 
   const detachListeners = () => {
     if (!audioRef.current || !listenersAttachedRef.current) return
-    const { onLoaded, onTime, onEnd, onPause, onPlay } = handlersRef.current
+    const { onLoaded, onTime, onEnd, onPause, onPlay, onError } = handlersRef.current
     if (onLoaded) audioRef.current.removeEventListener("loadedmetadata", onLoaded)
     if (onTime) audioRef.current.removeEventListener("timeupdate", onTime)
     if (onEnd) audioRef.current.removeEventListener("ended", onEnd)
     if (onPause) audioRef.current.removeEventListener("pause", onPause)
     if (onPlay) audioRef.current.removeEventListener("play", onPlay)
+    if (onError) audioRef.current.removeEventListener("error", onError)
     listenersAttachedRef.current = false
     handlersRef.current = {}
   }
@@ -110,15 +150,25 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
     if (audioRef.current) audioRef.current.loop = looping
   }, [looping])
 
-  const play = (track: SpotifyTrack) => {
-    if (!track?.previewUrl) return
+  const startPlayback = async (track: SpotifyTrack) => {
+    let playable = track
+    // No stored preview: resolve one on demand instead of failing silently
+    if (!playable?.previewUrl) {
+      const url = await resolvePreviewUrl(track)
+      if (!url) {
+        console.warn("[PreviewPlayer] no preview available for", track?.title)
+        return
+      }
+      playable = { ...track, previewUrl: url }
+    }
     ensureAudio()
-    setCurrentTrack(track)
+    currentTrackRef.current = playable
+    setCurrentTrack(playable)
     setCurrentTime(0)
     setDuration(0)
     if (audioRef.current) {
       try {
-        audioRef.current.src = track.previewUrl
+        audioRef.current.src = playable.previewUrl!
         audioRef.current.currentTime = 0
         audioRef.current.volume = muted ? 0 : volume
         audioRef.current.loop = looping
@@ -127,6 +177,11 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
         console.warn("[PreviewPlayer] play failed", e)
       }
     }
+  }
+
+  const play = (track: SpotifyTrack) => {
+    if (!track) return
+    void startPlayback(track)
   }
 
   const pause = () => {
@@ -153,6 +208,7 @@ export function PreviewPlayerProvider({ children }: { children: React.ReactNode 
       setCurrentTime(0)
       setDuration(0)
       setCurrentTrack(null)
+      currentTrackRef.current = null
     } catch {}
   }
 
